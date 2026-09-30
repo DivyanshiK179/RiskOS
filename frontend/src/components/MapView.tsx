@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { getHabitations } from "../api/habitations";
-import { useQuery } from "@tanstack/react-query";
 import { getSafeSites } from "../api/safesites";
 import * as turf from "@turf/turf";
 import type { SimulationResult } from "../api/stats";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 
@@ -21,7 +21,6 @@ interface MapViewProps {
 }
 
 export default function MapView({
-
   district,
   hazardLevel,
   onSelectHabitation,
@@ -30,14 +29,7 @@ export default function MapView({
   onMapClick,
   simulationResults,
 }: MapViewProps) {
-    const { data: habsData } = useQuery({
-    queryKey: ["habitations", district, hazardLevel],
-    queryFn: () => getHabitations({ district: district || undefined, hazard_level: hazardLevel || undefined }),
-  });
-  const { data: sitesData } = useQuery({
-    queryKey: ["safe-sites"],
-    queryFn: getSafeSites,
-  });
+  const queryClient = useQueryClient();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const epicenterMarkerRef = useRef<maplibregl.Marker | null>(null);
@@ -353,13 +345,22 @@ export default function MapView({
   // Refresh habitations data
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
-    let alive = true;
-    getHabitations({ district, hazard_level: hazardLevel }).then((geojson) => {
-      if (!alive || !mapRef.current) return;
-      (mapRef.current.getSource("habitations") as any)?.setData(geojson);
-    });
-    return () => { alive = false; };
-  }, [district, hazardLevel, mapLoaded]);
+    if (simulationResults) return; // Simulation handles its own updates
+    
+    // Explicitly fallback to empty string or undefined just like Dashboard uses for queryKey
+    const cachedData = queryClient.getQueryData(["habitations", district || "", hazardLevel || ""]);
+    if (cachedData) {
+      (mapRef.current.getSource("habitations") as any)?.setData(cachedData);
+    } else {
+      // Fallback fetch if not in cache (e.g. if loaded standalone)
+      let alive = true;
+      getHabitations({ district, hazard_level: hazardLevel }).then((geojson) => {
+        if (!alive || !mapRef.current) return;
+        (mapRef.current.getSource("habitations") as any)?.setData(geojson);
+      });
+      return () => { alive = false; };
+    }
+  }, [district, hazardLevel, mapLoaded, simulationResults, queryClient]);
 
   // Refresh safe sites
   useEffect(() => {
