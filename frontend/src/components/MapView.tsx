@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { getHabitations } from "../api/habitations";
+import { useQuery } from "@tanstack/react-query";
 import { getSafeSites } from "../api/safesites";
 import * as turf from "@turf/turf";
 import type { SimulationResult } from "../api/stats";
@@ -20,6 +21,7 @@ interface MapViewProps {
 }
 
 export default function MapView({
+
   district,
   hazardLevel,
   onSelectHabitation,
@@ -28,6 +30,14 @@ export default function MapView({
   onMapClick,
   simulationResults,
 }: MapViewProps) {
+    const { data: habsData } = useQuery({
+    queryKey: ["habitations", district, hazardLevel],
+    queryFn: () => getHabitations({ district: district || undefined, hazard_level: hazardLevel || undefined }),
+  });
+  const { data: sitesData } = useQuery({
+    queryKey: ["safe-sites"],
+    queryFn: getSafeSites,
+  });
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const epicenterMarkerRef = useRef<maplibregl.Marker | null>(null);
