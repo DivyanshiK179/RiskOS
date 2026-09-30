@@ -411,7 +411,7 @@ export default function Dashboard() {
                             <td className="px-4 py-3 text-slate-500">{plan.created_by_name || "—"}</td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {plan.status === "PROPOSED" && (
+                                {plan.status === "PROPOSED" && user?.role === "SUPERADMIN" && (
                                   <button
                                     onClick={() => updateStatus.mutate({ id: plan.id, status: "APPROVED" })}
                                     className="px-2 py-1 text-[11px] font-medium rounded border border-blue-800/60 bg-blue-950/40 text-blue-400 hover:bg-blue-900/40 transition-colors"
