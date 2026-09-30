@@ -391076,6 +391076,1146 @@
   }
 },
 {
+  "model": "geodata.safesite",
+  "pk": 66,
+  "fields": {
+    "name": "Garhwal Inter College",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.14413106679129 29.96311696522421)",
+    "available_area_hectares": 0.695,
+    "estimated_capacity": 139,
+    "current_occupied": 0,
+    "hazard_score": 15.84000015258789,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 67,
+  "fields": {
+    "name": "Rudraprayag Stadium",
+    "district": "Rudraprayag",
+    "location": "SRID=4326;POINT (79.11404783085932 30.504673585689694)",
+    "available_area_hectares": 2.39,
+    "estimated_capacity": 478,
+    "current_occupied": 0,
+    "hazard_score": 17.610000610351562,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 68,
+  "fields": {
+    "name": "Chamoli Govt Hospital",
+    "district": "Tehri Garhwal",
+    "location": "SRID=4326;POINT (79.25481745384612 30.266858641902854)",
+    "available_area_hectares": 0.635,
+    "estimated_capacity": 127,
+    "current_occupied": 0,
+    "hazard_score": 16.0,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 69,
+  "fields": {
+    "name": "Dehradun Govt Hospital",
+    "district": "Dehradun",
+    "location": "SRID=4326;POINT (77.92478362776131 30.64502485034429)",
+    "available_area_hectares": 12.46,
+    "estimated_capacity": 2492,
+    "current_occupied": 0,
+    "hazard_score": 16.299999237060547,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 70,
+  "fields": {
+    "name": "Pauri Garhwal Inter College",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.05562981193943 30.09865222753014)",
+    "available_area_hectares": 7.84,
+    "estimated_capacity": 1568,
+    "current_occupied": 0,
+    "hazard_score": 22.459999084472656,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 71,
+  "fields": {
+    "name": "Pauri Garhwal Public School",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (78.81886790700027 29.939120379859535)",
+    "available_area_hectares": 9.935,
+    "estimated_capacity": 1987,
+    "current_occupied": 0,
+    "hazard_score": 15.75,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 72,
+  "fields": {
+    "name": "Pithoragarh Stadium",
+    "district": "Pithoragarh",
+    "location": "SRID=4326;POINT (80.26613249047627 29.915324040958527)",
+    "available_area_hectares": 3.63,
+    "estimated_capacity": 726,
+    "current_occupied": 0,
+    "hazard_score": 16.170000076293945,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 73,
+  "fields": {
+    "name": "Almora Govt Hospital",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.81849395473989 29.644134566828253)",
+    "available_area_hectares": 12.095,
+    "estimated_capacity": 2419,
+    "current_occupied": 0,
+    "hazard_score": 9.390000343322754,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 74,
+  "fields": {
+    "name": "Almora Stadium",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.6626863202693 29.797520956800106)",
+    "available_area_hectares": 2.415,
+    "estimated_capacity": 483,
+    "current_occupied": 0,
+    "hazard_score": 15.890000343322754,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 75,
+  "fields": {
+    "name": "Almora\n Govt Hospital",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.54559519320732 29.6924950787701)",
+    "available_area_hectares": 8.455,
+    "estimated_capacity": 1691,
+    "current_occupied": 0,
+    "hazard_score": 15.930000305175781,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 76,
+  "fields": {
+    "name": "Pauri Garhwal Stadium",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.28724413012795 29.9447918143824)",
+    "available_area_hectares": 0.655,
+    "estimated_capacity": 131,
+    "current_occupied": 0,
+    "hazard_score": 15.75,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 77,
+  "fields": {
+    "name": "Dehradun Public School",
+    "district": "Dehradun",
+    "location": "SRID=4326;POINT (77.78758770995606 30.737360658189036)",
+    "available_area_hectares": 0.935,
+    "estimated_capacity": 187,
+    "current_occupied": 0,
+    "hazard_score": 8.520000457763672,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 78,
+  "fields": {
+    "name": "Uttarkashi Public School",
+    "district": "Tehri Garhwal",
+    "location": "SRID=4326;POINT (78.3207463047461 30.341060980044592)",
+    "available_area_hectares": 0.98,
+    "estimated_capacity": 196,
+    "current_occupied": 0,
+    "hazard_score": 15.119999885559082,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 79,
+  "fields": {
+    "name": "Bageshwar Inter College",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (80.03256623597892 29.988593013921577)",
+    "available_area_hectares": 0.725,
+    "estimated_capacity": 145,
+    "current_occupied": 0,
+    "hazard_score": 8.65999984741211,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 80,
+  "fields": {
+    "name": "Almora Govt Hospital",
+    "district": "Pithoragarh",
+    "location": "SRID=4326;POINT (79.68014138640014 29.655546402692224)",
+    "available_area_hectares": 1.17,
+    "estimated_capacity": 234,
+    "current_occupied": 0,
+    "hazard_score": 15.800000190734863,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 81,
+  "fields": {
+    "name": "Pauri Garhwal Stadium",
+    "district": "Chamoli",
+    "location": "SRID=4326;POINT (79.25815692169284 29.982688588719835)",
+    "available_area_hectares": 0.675,
+    "estimated_capacity": 135,
+    "current_occupied": 0,
+    "hazard_score": 15.930000305175781,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 82,
+  "fields": {
+    "name": "Garhwal Inter College",
+    "district": "Chamoli",
+    "location": "SRID=4326;POINT (79.45412286862377 30.291590206477164)",
+    "available_area_hectares": 0.755,
+    "estimated_capacity": 151,
+    "current_occupied": 0,
+    "hazard_score": 17.579999923706055,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 83,
+  "fields": {
+    "name": "Tehri Garhwal Public School",
+    "district": "Tehri Garhwal",
+    "location": "SRID=4326;POINT (78.27312709460486 30.55020664839001)",
+    "available_area_hectares": 6.39,
+    "estimated_capacity": 1278,
+    "current_occupied": 0,
+    "hazard_score": 17.239999771118164,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 84,
+  "fields": {
+    "name": "Tehri Garhwal Stadium",
+    "district": "Tehri Garhwal",
+    "location": "SRID=4326;POINT (78.41148132144752 30.30504676328221)",
+    "available_area_hectares": 2.27,
+    "estimated_capacity": 454,
+    "current_occupied": 0,
+    "hazard_score": 13.399999618530273,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 85,
+  "fields": {
+    "name": "Pauri Garhwal Govt Hospital",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (78.83906212553342 29.950423859467364)",
+    "available_area_hectares": 1.47,
+    "estimated_capacity": 294,
+    "current_occupied": 0,
+    "hazard_score": 26.649999618530273,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 86,
+  "fields": {
+    "name": "Nainital Inter College",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.32358357941888 29.609384950481417)",
+    "available_area_hectares": 3.62,
+    "estimated_capacity": 724,
+    "current_occupied": 0,
+    "hazard_score": 17.31999969482422,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 87,
+  "fields": {
+    "name": "Uttarkashi Inter College",
+    "district": "Uttarkashi",
+    "location": "SRID=4326;POINT (78.1094717929673 30.690522122236743)",
+    "available_area_hectares": 0.615,
+    "estimated_capacity": 123,
+    "current_occupied": 0,
+    "hazard_score": 17.56999969482422,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 88,
+  "fields": {
+    "name": "Almora Stadium",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.72899360036855 29.673068411025106)",
+    "available_area_hectares": 9.08,
+    "estimated_capacity": 1816,
+    "current_occupied": 0,
+    "hazard_score": 16.84000015258789,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 89,
+  "fields": {
+    "name": "Rudraprayag Stadium",
+    "district": "Rudraprayag",
+    "location": "SRID=4326;POINT (78.87611544833621 30.468890305319064)",
+    "available_area_hectares": 3.41,
+    "estimated_capacity": 682,
+    "current_occupied": 0,
+    "hazard_score": 12.800000190734863,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 90,
+  "fields": {
+    "name": "Tehri Garhwal Public School",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (78.9971784136073 29.889196709457437)",
+    "available_area_hectares": 1.41,
+    "estimated_capacity": 282,
+    "current_occupied": 0,
+    "hazard_score": 16.030000686645508,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 91,
+  "fields": {
+    "name": "Almora Public School",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.56327762707882 29.579626507642743)",
+    "available_area_hectares": 0.875,
+    "estimated_capacity": 175,
+    "current_occupied": 0,
+    "hazard_score": 17.989999771118164,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 92,
+  "fields": {
+    "name": "Chamoli Govt Hospital",
+    "district": "Chamoli",
+    "location": "SRID=4326;POINT (79.44354481408153 30.229433517758043)",
+    "available_area_hectares": 7.005,
+    "estimated_capacity": 1401,
+    "current_occupied": 0,
+    "hazard_score": 16.43000030517578,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 93,
+  "fields": {
+    "name": "Almora Govt Hospital",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.38289280872272 29.618882380964507)",
+    "available_area_hectares": 0.51,
+    "estimated_capacity": 102,
+    "current_occupied": 0,
+    "hazard_score": 18.559999465942383,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 94,
+  "fields": {
+    "name": "Tehri Garhwal Govt Hospital",
+    "district": "Uttarkashi",
+    "location": "SRID=4326;POINT (78.54924104929512 30.61090088399729)",
+    "available_area_hectares": 3.855,
+    "estimated_capacity": 771,
+    "current_occupied": 0,
+    "hazard_score": 9.90999984741211,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 95,
+  "fields": {
+    "name": "Bageshwar Public School",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (79.9190353712486 30.062978408993935)",
+    "available_area_hectares": 3.53,
+    "estimated_capacity": 706,
+    "current_occupied": 0,
+    "hazard_score": 12.760000228881836,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 96,
+  "fields": {
+    "name": "Bageshwar Govt Hospital",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (79.82818165988634 30.003922341107724)",
+    "available_area_hectares": 3.06,
+    "estimated_capacity": 612,
+    "current_occupied": 0,
+    "hazard_score": 21.639999389648438,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 97,
+  "fields": {
+    "name": "Rudraprayag Govt Hospital",
+    "district": "Rudraprayag",
+    "location": "SRID=4326;POINT (79.17271915960839 30.51154725869639)",
+    "available_area_hectares": 2.295,
+    "estimated_capacity": 459,
+    "current_occupied": 0,
+    "hazard_score": 7.909999847412109,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 98,
+  "fields": {
+    "name": "Almora Public School",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.31296120860546 29.961611618305394)",
+    "available_area_hectares": 9.57,
+    "estimated_capacity": 1914,
+    "current_occupied": 0,
+    "hazard_score": 18.290000915527344,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 99,
+  "fields": {
+    "name": "Almora Inter College",
+    "district": "Almora\n",
+    "location": "SRID=4326;POINT (79.67781341841916 29.785394082636646)",
+    "available_area_hectares": 10.71,
+    "estimated_capacity": 2142,
+    "current_occupied": 0,
+    "hazard_score": 16.190000534057617,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 100,
+  "fields": {
+    "name": "Tehri Garhwal Inter College",
+    "district": "Tehri Garhwal",
+    "location": "SRID=4326;POINT (78.32084332683085 30.35219015167649)",
+    "available_area_hectares": 0.56,
+    "estimated_capacity": 112,
+    "current_occupied": 0,
+    "hazard_score": 16.65999984741211,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 101,
+  "fields": {
+    "name": "Almora Public School",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.70826468133924 29.618238257210837)",
+    "available_area_hectares": 3.14,
+    "estimated_capacity": 628,
+    "current_occupied": 0,
+    "hazard_score": 19.469999313354492,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 102,
+  "fields": {
+    "name": "Bageshwar Govt Hospital",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (80.00349872476951 29.90940907550018)",
+    "available_area_hectares": 2.295,
+    "estimated_capacity": 459,
+    "current_occupied": 0,
+    "hazard_score": 17.690000534057617,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 103,
+  "fields": {
+    "name": "Uttarkashi Inter College",
+    "district": "Uttarkashi",
+    "location": "SRID=4326;POINT (78.1340028446885 30.71035966575379)",
+    "available_area_hectares": 3.935,
+    "estimated_capacity": 787,
+    "current_occupied": 0,
+    "hazard_score": 15.010000228881836,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 104,
+  "fields": {
+    "name": "Pauri Garhwal Public School",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.11189443485716 29.880764207224896)",
+    "available_area_hectares": 10.94,
+    "estimated_capacity": 2188,
+    "current_occupied": 0,
+    "hazard_score": 10.949999809265137,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 105,
+  "fields": {
+    "name": "Almora Stadium",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.5728438747809 29.638562352649647)",
+    "available_area_hectares": 2.355,
+    "estimated_capacity": 471,
+    "current_occupied": 0,
+    "hazard_score": 18.06999969482422,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 106,
+  "fields": {
+    "name": "Bageshwar Public School",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (79.70484170830458 30.057446178368398)",
+    "available_area_hectares": 5.085,
+    "estimated_capacity": 1017,
+    "current_occupied": 0,
+    "hazard_score": 8.329999923706055,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 107,
+  "fields": {
+    "name": "Bageshwar Stadium",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (79.57404436665317 29.969827641494664)",
+    "available_area_hectares": 2.365,
+    "estimated_capacity": 473,
+    "current_occupied": 0,
+    "hazard_score": 16.860000610351562,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 108,
+  "fields": {
+    "name": "Tehri Garhwal Govt Hospital",
+    "district": "Tehri Garhwal",
+    "location": "SRID=4326;POINT (78.4335909166714 30.35538961291358)",
+    "available_area_hectares": 5.64,
+    "estimated_capacity": 1128,
+    "current_occupied": 0,
+    "hazard_score": 15.800000190734863,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 109,
+  "fields": {
+    "name": "Almora Public School",
+    "district": "Almora\n",
+    "location": "SRID=4326;POINT (79.76506870119991 29.627708861403843)",
+    "available_area_hectares": 1.305,
+    "estimated_capacity": 261,
+    "current_occupied": 0,
+    "hazard_score": 30.309999465942383,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 110,
+  "fields": {
+    "name": "Pauri Garhwal Govt Hospital",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (78.8358840214294 29.964890460541607)",
+    "available_area_hectares": 1.075,
+    "estimated_capacity": 215,
+    "current_occupied": 0,
+    "hazard_score": 15.75,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 111,
+  "fields": {
+    "name": "Pauri Garhwal Inter College",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.15561394425427 29.940711500889865)",
+    "available_area_hectares": 0.54,
+    "estimated_capacity": 108,
+    "current_occupied": 0,
+    "hazard_score": 15.350000381469727,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 112,
+  "fields": {
+    "name": "Almora Inter College",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.40356756894617 29.800679502423524)",
+    "available_area_hectares": 2.195,
+    "estimated_capacity": 439,
+    "current_occupied": 0,
+    "hazard_score": 15.930000305175781,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 113,
+  "fields": {
+    "name": "Pauri Garhwal Stadium",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.14642098012602 29.70823983300734)",
+    "available_area_hectares": 1.5,
+    "estimated_capacity": 300,
+    "current_occupied": 0,
+    "hazard_score": 17.329999923706055,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 114,
+  "fields": {
+    "name": "Rudraprayag Inter College",
+    "district": "Rudraprayag",
+    "location": "SRID=4326;POINT (79.38275532973762 30.192246160029793)",
+    "available_area_hectares": 11.19,
+    "estimated_capacity": 2238,
+    "current_occupied": 0,
+    "hazard_score": 17.350000381469727,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 115,
+  "fields": {
+    "name": "Almora Govt Hospital",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.79480970044145 29.67448534309811)",
+    "available_area_hectares": 2.31,
+    "estimated_capacity": 462,
+    "current_occupied": 0,
+    "hazard_score": 9.579999923706055,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 116,
+  "fields": {
+    "name": "Rudraprayag Stadium",
+    "district": "Garhwal",
+    "location": "SRID=4326;POINT (78.88795419670979 30.18769905095413)",
+    "available_area_hectares": 2.58,
+    "estimated_capacity": 516,
+    "current_occupied": 0,
+    "hazard_score": 24.790000915527344,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 117,
+  "fields": {
+    "name": "Tehri Garhwal Inter College",
+    "district": "Tehri Garhwal",
+    "location": "SRID=4326;POINT (78.29203042587892 30.49247671527158)",
+    "available_area_hectares": 0.83,
+    "estimated_capacity": 166,
+    "current_occupied": 0,
+    "hazard_score": 12.359999656677246,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 118,
+  "fields": {
+    "name": "Bageshwar Public School",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (79.8758571357314 29.823475402)",
+    "available_area_hectares": 8.975,
+    "estimated_capacity": 1795,
+    "current_occupied": 0,
+    "hazard_score": 17.209999084472656,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 119,
+  "fields": {
+    "name": "Chamoli Inter College",
+    "district": "Chamoli",
+    "location": "SRID=4326;POINT (79.52063991819853 30.137367448700225)",
+    "available_area_hectares": 1.335,
+    "estimated_capacity": 267,
+    "current_occupied": 0,
+    "hazard_score": 21.1299991607666,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 120,
+  "fields": {
+    "name": "Pauri Garhwal Stadium",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.14118305133485 29.95950382707909)",
+    "available_area_hectares": 1.945,
+    "estimated_capacity": 389,
+    "current_occupied": 0,
+    "hazard_score": 15.84000015258789,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 121,
+  "fields": {
+    "name": "Pauri Garhwal Govt Hospital",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.14942671423886 29.94739208809176)",
+    "available_area_hectares": 0.845,
+    "estimated_capacity": 169,
+    "current_occupied": 0,
+    "hazard_score": 15.84000015258789,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 122,
+  "fields": {
+    "name": "Rudraprayag Govt Hospital",
+    "district": "Garhwal",
+    "location": "SRID=4326;POINT (78.95287857473605 30.391454924221986)",
+    "available_area_hectares": 0.79,
+    "estimated_capacity": 158,
+    "current_occupied": 0,
+    "hazard_score": 16.489999771118164,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 123,
+  "fields": {
+    "name": "Udham Singh Nagar Stadium",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (78.82715756782373 29.96343903722512)",
+    "available_area_hectares": 0.89,
+    "estimated_capacity": 178,
+    "current_occupied": 0,
+    "hazard_score": 31.510000228881836,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 124,
+  "fields": {
+    "name": "Rudraprayag Public School",
+    "district": "Rudraprayag",
+    "location": "SRID=4326;POINT (78.78652853642079 30.32269893866308)",
+    "available_area_hectares": 0.925,
+    "estimated_capacity": 185,
+    "current_occupied": 0,
+    "hazard_score": 27.780000686645508,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 125,
+  "fields": {
+    "name": "Almora\n Inter College",
+    "district": "Uttarkashi",
+    "location": "SRID=4326;POINT (78.46658649565211 30.713545627724095)",
+    "available_area_hectares": 8.675,
+    "estimated_capacity": 1735,
+    "current_occupied": 0,
+    "hazard_score": 16.329999923706055,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 126,
+  "fields": {
+    "name": "Pauri Garhwal Govt Hospital",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.12655574870429 29.911500153690437)",
+    "available_area_hectares": 2.325,
+    "estimated_capacity": 465,
+    "current_occupied": 0,
+    "hazard_score": 22.329999923706055,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 127,
+  "fields": {
+    "name": "Tehri Garhwal Govt Hospital",
+    "district": "Uttarkashi",
+    "location": "SRID=4326;POINT (78.60986328166594 30.528692873113574)",
+    "available_area_hectares": 3.72,
+    "estimated_capacity": 744,
+    "current_occupied": 0,
+    "hazard_score": 17.06999969482422,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 128,
+  "fields": {
+    "name": "Almora\n Inter College",
+    "district": "Almora",
+    "location": "SRID=4326;POINT (79.51294606098594 29.62580936646998)",
+    "available_area_hectares": 12.33,
+    "estimated_capacity": 2466,
+    "current_occupied": 0,
+    "hazard_score": 20.020000457763672,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 129,
+  "fields": {
+    "name": "Bageshwar Govt Hospital",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (79.86846322332062 30.05131207074358)",
+    "available_area_hectares": 0.845,
+    "estimated_capacity": 169,
+    "current_occupied": 0,
+    "hazard_score": 20.049999237060547,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 130,
+  "fields": {
+    "name": "Dehradun Stadium",
+    "district": "Dehradun",
+    "location": "SRID=4326;POINT (77.7597300375427 30.78128769411142)",
+    "available_area_hectares": 2.315,
+    "estimated_capacity": 463,
+    "current_occupied": 0,
+    "hazard_score": 16.600000381469727,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 131,
+  "fields": {
+    "name": "Uttarkashi Stadium",
+    "district": "Uttarkashi",
+    "location": "SRID=4326;POINT (78.31866421441248 30.818161778702883)",
+    "available_area_hectares": 8.495,
+    "estimated_capacity": 1699,
+    "current_occupied": 0,
+    "hazard_score": 13.270000457763672,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 132,
+  "fields": {
+    "name": "Rudraprayag Govt Hospital",
+    "district": "Rudraprayag",
+    "location": "SRID=4326;POINT (78.99226639274652 30.1025719706639)",
+    "available_area_hectares": 3.83,
+    "estimated_capacity": 766,
+    "current_occupied": 0,
+    "hazard_score": 15.010000228881836,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 133,
+  "fields": {
+    "name": "Tehri Garhwal Inter College",
+    "district": "Tehri Garhwal",
+    "location": "SRID=4326;POINT (78.56214175949475 30.45357707047467)",
+    "available_area_hectares": 0.635,
+    "estimated_capacity": 127,
+    "current_occupied": 0,
+    "hazard_score": 22.1200008392334,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 134,
+  "fields": {
+    "name": "Almora Inter College",
+    "district": "Pithoragarh",
+    "location": "SRID=4326;POINT (79.54874837560286 29.781158246997624)",
+    "available_area_hectares": 10.315,
+    "estimated_capacity": 2063,
+    "current_occupied": 0,
+    "hazard_score": 15.100000381469727,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 135,
+  "fields": {
+    "name": "Pauri Garhwal Govt Hospital",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (79.15662063826291 29.734841127991007)",
+    "available_area_hectares": 9.1,
+    "estimated_capacity": 1820,
+    "current_occupied": 0,
+    "hazard_score": 15.800000190734863,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 136,
+  "fields": {
+    "name": "Tehri Garhwal Inter College",
+    "district": "Rudraprayag",
+    "location": "SRID=4326;POINT (78.85255779389622 30.337312188162844)",
+    "available_area_hectares": 1.03,
+    "estimated_capacity": 206,
+    "current_occupied": 0,
+    "hazard_score": 14.5,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 137,
+  "fields": {
+    "name": "Unknown Stadium",
+    "district": "Garhwal",
+    "location": "SRID=4326;POINT (77.80582250068562 30.798372520186298)",
+    "available_area_hectares": 8.455,
+    "estimated_capacity": 1691,
+    "current_occupied": 0,
+    "hazard_score": 18.1200008392334,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 138,
+  "fields": {
+    "name": "Pauri Garhwal Govt Hospital",
+    "district": "Pauri Garhwal",
+    "location": "SRID=4326;POINT (78.79923224694433 29.799351434438893)",
+    "available_area_hectares": 1.975,
+    "estimated_capacity": 395,
+    "current_occupied": 0,
+    "hazard_score": 13.729999542236328,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 139,
+  "fields": {
+    "name": "Pauri Garhwal Inter College",
+    "district": "Rudraprayag",
+    "location": "SRID=4326;POINT (79.2441835690964 30.100735920749834)",
+    "available_area_hectares": 3.445,
+    "estimated_capacity": 689,
+    "current_occupied": 0,
+    "hazard_score": 13.770000457763672,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 140,
+  "fields": {
+    "name": "Dehradun Inter College",
+    "district": "Dehradun",
+    "location": "SRID=4326;POINT (77.89036832766725 30.662293856909685)",
+    "available_area_hectares": 1.2,
+    "estimated_capacity": 240,
+    "current_occupied": 0,
+    "hazard_score": 12.520000457763672,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
+  "model": "geodata.safesite",
+  "pk": 141,
+  "fields": {
+    "name": "Bageshwar Public School",
+    "district": "Bageshwar",
+    "location": "SRID=4326;POINT (79.91696072248628 29.89949294735566)",
+    "available_area_hectares": 7.79,
+    "estimated_capacity": 1558,
+    "current_occupied": 0,
+    "hazard_score": 15.8100004196167,
+    "road_access": true,
+    "water_availability": true
+  }
+},
+{
   "model": "accounts.user",
   "pk": 1,
   "fields": {
@@ -391169,6 +392309,18 @@
     "severity": "WARNING",
     "created_by": 2,
     "created_at": "2026-09-28T16:43:19.236Z"
+  }
+},
+{
+  "model": "relocation.alert",
+  "pk": 7,
+  "fields": {
+    "habitation": 14066,
+    "title": "flood",
+    "message": "help !!!!!",
+    "severity": "WARNING",
+    "created_by": 2,
+    "created_at": "2026-09-30T05:27:39.629Z"
   }
 }
 ]
