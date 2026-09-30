@@ -19,21 +19,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 import os
 
 # 1. The custom OSGeo4W path from your screenshot
-OSGEO4W = r"C:\Users\adity\AppData\Local\Programs\OSGeo4W"
-
-# 2. Add the DLL directory explicitly for Python 3.8+ on Windows
-if os.name == 'nt':
-    os.add_dll_directory(os.path.join(OSGEO4W, 'bin'))
-
-# 3. Set environment variables for GDAL to find its projection files
-os.environ['OSGEO4W_ROOT'] = OSGEO4W
-os.environ['GDAL_DATA'] = os.path.join(OSGEO4W, 'share', 'gdal')
-os.environ['PROJ_LIB'] = os.path.join(OSGEO4W, 'share', 'proj')
-os.environ['PATH'] = os.path.join(OSGEO4W, 'bin') + ';' + os.environ['PATH']
-
-# 4. Point directly to the exact gdal313.dll file
-GDAL_LIBRARY_PATH = os.path.join(OSGEO4W, 'bin', 'gdal313.dll')
-GEOS_LIBRARY_PATH = os.path.join(OSGEO4W, 'bin', 'geos_c.dll')
+import os
+if os.name == "nt":
+    OSGEO4W = r"C:\Users\adity\AppData\Local\Programs\OSGeo4W"
+    try:
+        os.add_dll_directory(os.path.join(OSGEO4W, 'bin'))
+    except:
+        pass
+    os.environ['OSGEO4W_ROOT'] = OSGEO4W
+    os.environ['GDAL_DATA'] = os.path.join(OSGEO4W, 'share', 'gdal')
+    os.environ['PROJ_LIB'] = os.path.join(OSGEO4W, 'share', 'proj')
+    os.environ['PATH'] = os.path.join(OSGEO4W, 'bin') + ';' + os.environ.get('PATH', '')
+    GDAL_LIBRARY_PATH = os.path.join(OSGEO4W, 'bin', 'gdal313.dll')
+    GEOS_LIBRARY_PATH = os.path.join(OSGEO4W, 'bin', 'geos_c.dll')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
