@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X, ChevronRight, ChevronLeft, BarChart3 } from "lucide-react";
+import { Search, X, ChevronRight, BarChart3 } from "lucide-react";
 import { getHabitations } from "../api/habitations";
 import { getAlerts } from "../api/relocation";
 import { getGeoStats } from "../api/stats";
@@ -12,6 +12,7 @@ import type { AlertItem, HabitationFeature } from "../types";
 import { hazardBadgeClass, hazardLabel, hazardDotColor } from "../lib/utils";
 import { useTranslation } from "../i18n/translations";
 import { useUIStore } from "../store/uiStore";
+import { extractCleanDistricts } from "../lib/districts";
 
 export default function PublicMap() {
   const [districtFilter, setDistrictFilter] = useState("");
@@ -68,6 +69,10 @@ export default function PublicMap() {
     queryFn: getGeoStats,
   });
 
+  const availableDistricts = useMemo(() => {
+    return extractCleanDistricts(stats?.districts);
+  }, [stats?.districts]);
+
   const features: HabitationFeature[] = habitationsData?.features ?? [];
   const criticalAlerts = alertsData?.filter((a) => a.severity === "CRITICAL") ?? [];
 
@@ -118,22 +123,10 @@ export default function PublicMap() {
             onSelectHabitation={setSelectedId}
             showSafeSites
             habitationsData={habitationsData}
+            onToggleAnalytics={toggleInspector}
+            isAnalyticsOpen={!inspectorCollapsed}
+            settlementCount={features.length}
           />
-
-          {/* Persistent Right Inspector Floating Pill Button (when minimized) */}
-          {inspectorCollapsed && (
-            <button
-              onClick={toggleInspector}
-              className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3.5 py-2 bg-white/95 dark:bg-[#0F172Aee] hover:bg-slate-50 dark:hover:bg-[#1E293B] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-full shadow-xl backdrop-blur-md text-xs font-bold transition-all group hover:scale-105"
-              title="Open Settlement Directory & Analytics (])"
-              aria-label="Open Settlement Directory & Analytics (])"
-            >
-              <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
-              <span>{t("settlement_analytics")} ({features.length > 0 ? features.length.toLocaleString() : "13,967"})</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">]</span>
-              <ChevronLeft className="w-4 h-4 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white transition-transform" />
-            </button>
-          )}
         </div>
 
         {/* Right panel: filters + stats + list */}
@@ -195,12 +188,17 @@ export default function PublicMap() {
                 </label>
                 <select
                   value={districtFilter}
-                  onChange={(e) => setDistrictFilter(e.target.value)}
-                  className="w-full text-xs py-1 px-1.5 bg-white dark:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#475569] rounded-md text-[#0F172A] dark:text-[#F9FAFB]"
+                  onChange={(e) => {
+                    setDistrictFilter(e.target.value);
+                    setSelectedId(null);
+                  }}
+                  className="w-full text-xs py-1.5 px-2 bg-white dark:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#475569] rounded-lg text-[#0F172A] dark:text-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs cursor-pointer z-50 max-h-60 overflow-y-auto"
                 >
                   <option value="">{t("all_districts")}</option>
-                  {stats?.districts.map((d) => (
-                    <option key={d} value={d}>{t(d)}</option>
+                  {availableDistricts.map((d) => (
+                    <option key={d} value={d}>
+                      {t(d)}
+                    </option>
                   ))}
                 </select>
               </div>

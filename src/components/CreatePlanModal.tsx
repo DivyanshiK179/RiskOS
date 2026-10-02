@@ -4,7 +4,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { getHabitations } from "../api/habitations";
 import { getSafeSites } from "../api/safesites";
 import { createRelocationPlan } from "../api/relocation";
-import type { PriorityLevel } from "../types";
+import type { PriorityLevel, SafeSiteGeoJSON } from "../types";
 import { useTranslation } from "../i18n/translations";
 
 interface CreatePlanModalProps {
@@ -45,9 +45,9 @@ export default function CreatePlanModal({
     queryFn: () => getHabitations({}),
     enabled: isOpen,
   });
-  const { data: sitesData } = useQuery({
+  const { data: sitesData } = useQuery<SafeSiteGeoJSON>({
     queryKey: ["safe-sites"],
-    queryFn: getSafeSites,
+    queryFn: () => getSafeSites(),
     enabled: isOpen,
   });
 
@@ -106,7 +106,7 @@ export default function CreatePlanModal({
             <label className="label">{t("Assigned Safe Site")}</label>
             <select value={safeSiteId} onChange={(e) => setSafeSiteId(e.target.value)} className="select">
               <option value="">{t("search_placeholder")}</option>
-              {sitesData?.features.map((f) => (
+              {sitesData?.features?.map((f: any) => (
                 <option key={f.id} value={f.id}>
                   {f.properties.name} — {t("Capacity:")} {(f.properties.remaining_capacity ?? f.properties.estimated_capacity).toLocaleString()}
                 </option>
@@ -147,8 +147,8 @@ export default function CreatePlanModal({
           </div>
 
           {create.isError && (
-            <div className="p-3 bg-red-950/40 border border-red-900/50 rounded text-xs text-red-400">
-              Failed to create plan. Please check all fields and try again.
+            <div className="p-3 bg-red-100 dark:bg-red-950/40 border border-red-300 dark:border-red-900/50 rounded text-xs text-red-700 dark:text-red-400">
+              {t("Failed to create plan. Please check all fields and try again.")}
             </div>
           )}
         </div>

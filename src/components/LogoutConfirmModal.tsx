@@ -59,7 +59,7 @@ export default function LogoutConfirmModal({
               {t("sign_out_confirm_desc")}
             </p>
             <div className="p-2 rounded bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
-              Active Session: <span className="font-semibold text-slate-900 dark:text-slate-200">{userName}</span> (State Officer - Uttarakhand SDMA)
+              {t("Active Session:")} <span className="font-semibold text-slate-900 dark:text-slate-200">{userName}</span> ({t("officer_role")})
             </div>
           </div>
         </div>

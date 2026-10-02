@@ -21,10 +21,16 @@ import {
   Route,
   Expand,
   Minimize2,
-  X
+  X,
+  Search,
+  Download,
+  Target,
+  BarChart3,
+  ArrowRight
 } from "lucide-react";
 import { useTranslation } from "../i18n/translations";
 import { useUIStore } from "../store/uiStore";
+import { DISTRICT_CENTROIDS, UTTARAKHAND_DEFAULT_CENTER, DISTRICT_NAMES_HI } from "../lib/districts";
 
 interface MapViewProps {
   district?: string;
@@ -33,12 +39,68 @@ interface MapViewProps {
   selectedHabitationId?: number | null;
   showSafeSites?: boolean;
   simulationMode?: boolean;
+  simulationEpicenter?: { lat: number; lon: number } | null;
+  simulationRadius?: number;
+  simulationType?: string;
+  onEpicenterChange?: (epicenter: { lat: number; lon: number }) => void;
   onMapClick?: (lat: number, lon: number) => void;
   simulationResults?: SimulationResult | null;
   habitationsData?: any;
+  focusedLocation?: { lat: number; lon: number } | null;
+  onActivateSimulation?: (epicenter?: { lat: number; lon: number }, radius?: number) => void;
+  onToggleAnalytics?: () => void;
+  isAnalyticsOpen?: boolean;
+  settlementCount?: number;
+  initialShowLandslide?: boolean;
+  initialShowFlood?: boolean;
+  initialFacility?: string;
 }
 
 type BasemapType = "satellite" | "street" | "topo";
+
+export const BASEMAPS = {
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Esri, Maxar, Earthstar Geographics",
+  },
+  street: {
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    attribution: "CartoDB, OpenStreetMap",
+  },
+  topo: {
+    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    attribution: "OpenTopoMap",
+  },
+};
+
+/**
+ * Normalizes any coordinate representation into [lng, lat] for MapLibre GL JS.
+ * Safeguards against Leaflet [lat, lng] vs GeoJSON [lng, lat] inversion.
+ * In Uttarakhand, longitude is ~77.5 - 81.2 (always > 50) and latitude is ~28.5 - 31.5 (always < 50).
+ */
+export function normalizeMapCoords(item: any): [number, number] | null {
+  if (!item) return null;
+  // GeoJSON Feature or geometry
+  const coords = item.geometry?.coordinates || item.coordinates;
+  if (Array.isArray(coords) && coords.length >= 2) {
+    const c0 = Number(coords[0]);
+    const c1 = Number(coords[1]);
+    if (!isNaN(c0) && !isNaN(c1)) {
+      const lng = c0 > 50 ? c0 : c1;
+      const lat = c0 > 50 ? c1 : c0;
+      return [lng, lat];
+    }
+  }
+  // Object with lat/lon or latitude/longitude
+  const latVal = Number(item.latitude ?? item.lat);
+  const lngVal = Number(item.longitude ?? item.lon ?? item.lng);
+  if (!isNaN(latVal) && !isNaN(lngVal)) {
+    const lng = lngVal > 50 ? lngVal : latVal;
+    const lat = lngVal > 50 ? latVal : lngVal;
+    return [lng, lat];
+  }
+  return null;
+}
 
 // Authoritative Uttarakhand Hazard Susceptibility Corridors (GSI / NRSC / NDMA)
 const UTTARAKHAND_LANDSLIDE_ZONES: GeoJSON.FeatureCollection = {
@@ -130,12 +192,33 @@ export default function MapView({
   selectedHabitationId,
   showSafeSites = true,
   simulationMode = false,
+  simulationEpicenter,
+  simulationRadius = 10,
+  simulationType = "CLOUDBURST",
+  onEpicenterChange,
   onMapClick,
   simulationResults,
   habitationsData,
+  focusedLocation,
+  onActivateSimulation,
+  onToggleAnalytics,
+  isAnalyticsOpen = false,
+  settlementCount,
+  initialShowLandslide,
+  initialShowFlood,
+  initialFacility,
 }: MapViewProps) {
   const { t, lang } = useTranslation();
-  const { theme, layersCollapsed, toggleLayers, zenMode, toggleZenMode, resizeTrigger } = useUIStore();
+  const {
+    theme,
+    layersCollapsed,
+    toggleLayers,
+    zenMode,
+    toggleZenMode,
+    resizeTrigger,
+    isTargetToolActive,
+    setIsTargetToolActive,
+  } = useUIStore();
   const langRef = useRef(lang);
   const themeRef = useRef(theme);
 
@@ -166,9 +249,58 @@ export default function MapView({
   // Grouped Hazard & Infrastructure Layer Toggles
   const [showHabs, setShowHabs] = useState(true);
   const [showSites, setShowSites] = useState(showSafeSites);
-  const [showLandslide, setShowLandslide] = useState(true);
-  const [showFlood, setShowFlood] = useState(false);
+  const [showLandslide, setShowLandslide] = useState(initialShowLandslide ?? true);
+  const [showFlood, setShowFlood] = useState(initialShowFlood ?? false);
   const [activeLayerTab, setActiveLayerTab] = useState<"layers" | "legend">("layers");
+
+  // Facility Ribbon Filter (BharatMaps Standard)
+  const [selectedFacility, setSelectedFacility] = useState<string>(initialFacility ?? "all");
+
+  useEffect(() => {
+    if (initialShowLandslide !== undefined) setShowLandslide(initialShowLandslide);
+  }, [initialShowLandslide]);
+
+  useEffect(() => {
+    if (initialShowFlood !== undefined) setShowFlood(initialShowFlood);
+  }, [initialShowFlood]);
+
+  useEffect(() => {
+    if (initialFacility !== undefined) setSelectedFacility(initialFacility);
+  }, [initialFacility]);
+
+  // Top-Left Floating Dock Search & Spatial Tools
+  const [mapSearchText, setMapSearchText] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Target Epicenter & Dynamic Hazard Buffer State
+  const [targetEpicenter, setTargetEpicenter] = useState<{ lat: number; lon: number } | null>(null);
+  const [targetRadiusKm, setTargetRadiusKm] = useState(15);
+  const [targetBrief, setTargetBrief] = useState<{
+    lat: number;
+    lon: number;
+    district: string;
+    habitationsCount: number;
+    totalPopulation: number;
+    nearestShelters: Array<{ name: string; distanceKm: number; capacity?: number; type?: string }>;
+  } | null>(null);
+
+  const targetRadiusKmRef = useRef(15);
+  const targetEpicenterRef = useRef<{ lat: number; lon: number } | null>(null);
+  const targetMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const isTargetToolActiveRef = useRef(isTargetToolActive);
+
+  useEffect(() => {
+    isTargetToolActiveRef.current = isTargetToolActive;
+  }, [isTargetToolActive]);
+
+  useEffect(() => {
+    targetRadiusKmRef.current = targetRadiusKm;
+  }, [targetRadiusKm]);
+
+  useEffect(() => {
+    targetEpicenterRef.current = targetEpicenter;
+  }, [targetEpicenter]);
 
   // GIS Inspector & Utilities
   const [cursorCoords, setCursorCoords] = useState<{ lat: string; lon: string; zoom: string } | null>(null);
@@ -179,22 +311,501 @@ export default function MapView({
 
   const simulationModeRef = useRef(simulationMode);
   const onMapClickRef = useRef(onMapClick);
+  const onEpicenterChangeRef = useRef(onEpicenterChange);
   const measuringRef = useRef(measuring);
   const measurePointsRef = useRef(measurePoints);
 
   useEffect(() => {
     simulationModeRef.current = simulationMode;
     onMapClickRef.current = onMapClick;
-    if (!simulationMode && epicenterMarkerRef.current) {
-      epicenterMarkerRef.current.remove();
-      epicenterMarkerRef.current = null;
-    }
-  }, [simulationMode, onMapClick]);
+    onEpicenterChangeRef.current = onEpicenterChange;
+  }, [simulationMode, onMapClick, onEpicenterChange]);
 
   useEffect(() => {
     measuringRef.current = measuring;
     measurePointsRef.current = measurePoints;
   }, [measuring, measurePoints]);
+
+  // Autocomplete search across loaded habitations and Uttarakhand districts
+  useEffect(() => {
+    if (!mapSearchText.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const q = mapSearchText.toLowerCase().trim();
+    const results: any[] = [];
+
+    // 1. Search official districts
+    for (const [distName, center] of Object.entries(DISTRICT_CENTROIDS)) {
+      if (distName.toLowerCase().includes(q)) {
+        results.push({
+          isDistrict: true,
+          name: distName,
+          lat: center.lat,
+          lon: center.lon,
+          zoom: center.zoom,
+        });
+      }
+    }
+
+    // 2. Search loaded settlements
+    const allFeatures = habitationsData?.features || [];
+    for (const f of allFeatures) {
+      if (results.length >= 10) break;
+      const name = (f.properties?.name || "").toLowerCase();
+      const dist = (f.properties?.district || "").toLowerCase();
+      if (name.includes(q) || dist.includes(q)) {
+        results.push(f);
+      }
+    }
+
+    // 3. Search loaded safe shelters & emergency facilities
+    const safeSites = safeSitesRef.current?.features || [];
+    for (const s of safeSites) {
+      if (results.length >= 15) break;
+      const name = (s.properties?.name || "").toLowerCase();
+      const dist = (s.properties?.district || "").toLowerCase();
+      if (name.includes(q) || dist.includes(q)) {
+        results.push({ ...s, isSafeSite: true });
+      }
+    }
+
+    setSearchResults(results.slice(0, 8));
+  }, [mapSearchText, habitationsData]);
+
+  const handleSelectSearchResult = (item: any) => {
+    setSearchOpen(false);
+    if (!mapRef.current) return;
+
+    if (item.isDistrict) {
+      setMapSearchText(item.name);
+      mapRef.current.flyTo({
+        center: [item.lon, item.lat],
+        zoom: item.zoom || 10,
+        duration: 1200,
+        essential: true,
+      });
+      return;
+    }
+
+    if (item.isSafeSite) {
+      setMapSearchText(item.properties?.name || "");
+      const coords = normalizeMapCoords(item);
+      if (coords) {
+        mapRef.current.flyTo({
+          center: coords,
+          zoom: 15,
+          duration: 1200,
+          essential: true,
+        });
+        showSafeSitePopup(item, coords);
+      }
+      return;
+    }
+
+    setMapSearchText(item.properties?.name || "");
+    const coords = normalizeMapCoords(item);
+    if (coords) {
+      mapRef.current.flyTo({
+        center: coords,
+        zoom: 14,
+        duration: 1200,
+        essential: true,
+      });
+      showSettlementPopup(item, coords);
+      if (onSelectHabitation) onSelectHabitation(item.properties?.id || item.id);
+    }
+  };
+
+  const handleExportMapViewport = () => {
+    if (!mapRef.current) return;
+    try {
+      const canvas = mapRef.current.getCanvas();
+      const dataUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `riskos-map-inspection-${new Date().toISOString().slice(0, 10)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {
+      handleExportData();
+    }
+  };
+
+  const handleExportData = () => {
+    const dataToExport = habitationsData || {
+      type: "FeatureCollection",
+      features: [],
+    };
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `riskos-geodata-export-${new Date().toISOString().slice(0, 10)}.geojson`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const clearTargetTool = useCallback(() => {
+    if (targetMarkerRef.current) {
+      targetMarkerRef.current.remove();
+      targetMarkerRef.current = null;
+    }
+    if (mapRef.current) {
+      const src = mapRef.current.getSource("buffer-tool-source") as any;
+      if (src) {
+        src.setData({
+          type: "FeatureCollection",
+          features: [],
+        });
+      }
+      if (!measuringRef.current && !simulationModeRef.current) {
+        mapRef.current.getCanvas().style.cursor = "";
+      }
+    }
+    setTargetEpicenter(null);
+    setTargetBrief(null);
+  }, []);
+
+  const handleSetTargetEpicenter = useCallback((lat: number, lon: number, radiusKm: number) => {
+    if (!mapRef.current) return;
+    setTargetEpicenter({ lat, lon });
+
+    // 1. Draw dynamic circular hazard buffer
+    const circlePoly = turf.circle([lon, lat], radiusKm, { steps: 64, units: "kilometers" });
+    const bufferSrc = mapRef.current.getSource("buffer-tool-source") as any;
+    if (bufferSrc) {
+      bufferSrc.setData({
+        type: "FeatureCollection",
+        features: [circlePoly],
+      });
+    }
+
+    // 2. Animated Pulsating Epicenter Marker
+    if (targetMarkerRef.current) {
+      targetMarkerRef.current.setLngLat([lon, lat]);
+    } else {
+      const el = document.createElement("div");
+      el.className = "riskos-epicenter-marker";
+      el.title = "Disaster Epicenter (Drag to adjust coordinates)";
+      el.innerHTML = `
+        <div class="radar-ring-1"></div>
+        <div class="radar-ring-2"></div>
+        <div class="core-pin">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; color: white;">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="22" y1="12" x2="18" y2="12"/>
+            <line x1="6" y1="12" x2="2" y2="12"/>
+            <line x1="12" y1="6" x2="12" y2="2"/>
+            <line x1="12" y1="22" x2="12" y2="18"/>
+          </svg>
+        </div>
+      `;
+      const marker = new maplibregl.Marker({
+        element: el,
+        draggable: true,
+      })
+        .setLngLat([lon, lat])
+        .addTo(mapRef.current);
+
+      marker.on("dragend", () => {
+        const lngLat = marker.getLngLat();
+        handleSetTargetEpicenter(lngLat.lat, lngLat.lng, targetRadiusKmRef.current);
+      });
+
+      targetMarkerRef.current = marker;
+    }
+
+    // 3. Spatial Query & Telemetry
+    const epicPt = turf.point([lon, lat]);
+    const habFeatures = habitationsData?.features || (mapRef.current.getSource("habitations") as any)?._data?.features || [];
+    let affectedHabs = 0;
+    let affectedPopulation = 0;
+    let nearestDistrictName = "";
+    let minDistrictDist = Infinity;
+
+    for (const [dName, center] of Object.entries(DISTRICT_CENTROIDS)) {
+      const dDist = turf.distance(epicPt, turf.point([center.lon, center.lat]), { units: "kilometers" });
+      if (dDist < minDistrictDist) {
+        minDistrictDist = dDist;
+        nearestDistrictName = dName;
+      }
+    }
+
+    for (const feat of habFeatures) {
+      const coords = normalizeMapCoords(feat);
+      if (!coords) continue;
+      const pt = turf.point(coords);
+      const d = turf.distance(epicPt, pt, { units: "kilometers" });
+      if (d <= radiusKm) {
+        affectedHabs++;
+        const pop = Number(feat.properties?.population ?? feat.properties?.pop ?? feat.population ?? 0);
+        affectedPopulation += isNaN(pop) ? 0 : pop;
+      }
+    }
+
+    // 4. Safe Shelters Outside Buffer Perimeter
+    const shelterFeatures = safeSitesRef.current?.features || [];
+    const outsideShelters: Array<{ name: string; distanceKm: number; capacity?: number; type?: string }> = [];
+
+    for (const s of shelterFeatures) {
+      const coords = normalizeMapCoords(s);
+      if (!coords) continue;
+      const pt = turf.point(coords);
+      const d = turf.distance(epicPt, pt, { units: "kilometers" });
+      if (d > radiusKm) {
+        outsideShelters.push({
+          name: s.properties?.name || s.name || "Safe Relocation Shelter",
+          distanceKm: Number(d.toFixed(1)),
+          capacity: s.properties?.capacity || s.capacity,
+          type: s.properties?.facility_type || s.properties?.type || "Shelter",
+        });
+      }
+    }
+
+    outsideShelters.sort((a, b) => a.distanceKm - b.distanceKm);
+
+    setTargetBrief({
+      lat,
+      lon,
+      district: nearestDistrictName || "Uttarakhand",
+      habitationsCount: affectedHabs,
+      totalPopulation: affectedPopulation,
+      nearestShelters: outsideShelters.slice(0, 3),
+    });
+  }, [habitationsData]);
+
+  const handleRadiusChange = (newRadius: number) => {
+    setTargetRadiusKm(newRadius);
+    targetRadiusKmRef.current = newRadius;
+    if (targetEpicenterRef.current) {
+      handleSetTargetEpicenter(targetEpicenterRef.current.lat, targetEpicenterRef.current.lon, newRadius);
+    }
+  };
+
+  // Escape key cancels target tool mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isTargetToolActiveRef.current) {
+          setIsTargetToolActive(false);
+          clearTargetTool();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setIsTargetToolActive, clearTargetTool]);
+
+  // Dynamic Map Cursor Control
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const canvas = mapRef.current.getCanvas();
+    if (!canvas) return;
+    if (simulationMode || isTargetToolActive) {
+      canvas.style.cursor = "crosshair";
+    } else if (!measuring) {
+      canvas.style.cursor = "";
+    }
+  }, [simulationMode, isTargetToolActive, measuring, mapLoaded]);
+
+  // Animated Draggable Disaster Epicenter Marker
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+
+    if (!simulationMode || !simulationEpicenter) {
+      if (epicenterMarkerRef.current) {
+        epicenterMarkerRef.current.remove();
+        epicenterMarkerRef.current = null;
+      }
+      return;
+    }
+
+    const { lat, lon } = simulationEpicenter;
+
+    if (epicenterMarkerRef.current) {
+      const currentPos = epicenterMarkerRef.current.getLngLat();
+      if (Math.abs(currentPos.lat - lat) > 0.0001 || Math.abs(currentPos.lng - lon) > 0.0001) {
+        epicenterMarkerRef.current.setLngLat([lon, lat]);
+      }
+    } else {
+      const el = document.createElement("div");
+      el.className = "riskos-epicenter-marker";
+      el.title = "Disaster Epicenter (Drag to adjust coordinates)";
+      el.innerHTML = `
+        <div class="radar-ring-1"></div>
+        <div class="radar-ring-2"></div>
+        <div class="core-pin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;">
+            <circle cx="12" cy="12" r="8" />
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+            <line x1="12" y1="1" x2="12" y2="4" />
+            <line x1="12" y1="20" x2="12" y2="23" />
+            <line x1="1" y1="12" x2="4" y2="12" />
+            <line x1="20" y1="12" x2="23" y2="12" />
+          </svg>
+        </div>
+      `;
+
+      const marker = new maplibregl.Marker({
+        element: el,
+        draggable: true,
+      })
+        .setLngLat([lon, lat])
+        .addTo(mapRef.current);
+
+      marker.on("drag", () => {
+        const lngLat = marker.getLngLat();
+        onEpicenterChangeRef.current?.({ lat: lngLat.lat, lon: lngLat.lng });
+      });
+
+      marker.on("dragend", () => {
+        const lngLat = marker.getLngLat();
+        onEpicenterChangeRef.current?.({ lat: lngLat.lat, lon: lngLat.lng });
+      });
+
+      epicenterMarkerRef.current = marker;
+    }
+  }, [simulationMode, simulationEpicenter, mapLoaded]);
+
+  // Real-time Dynamic Impact Radius Buffer (Linked to Radius Slider & Disaster Type)
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const source = mapRef.current.getSource("simulation-circle") as any;
+    if (!source) return;
+
+    const targetEpicenter = simulationEpicenter || (simulationResults ? simulationResults.epicenter : null);
+
+    if (!simulationMode || !targetEpicenter) {
+      if (!simulationResults) {
+        source.setData({ type: "FeatureCollection", features: [] });
+      }
+      return;
+    }
+
+    const { lat, lon } = targetEpicenter;
+    const radius = simulationRadius || 10;
+    const type = simulationType || (simulationResults ? simulationResults.epicenter.type : "CLOUDBURST");
+
+    const circleFeatures: any[] = [];
+
+    if (type === "EARTHQUAKE") {
+      // Concentric seismic fault shockwave rings
+      const r1 = Math.max(0.5, radius * 0.33);
+      const r2 = Math.max(1, radius * 0.66);
+      const r3 = radius;
+
+      const circle3 = turf.circle([lon, lat], r3, { steps: 64, units: "kilometers" });
+      circle3.properties = {
+        fillColor: "rgba(220, 38, 38, 0.12)",
+        fillOpacity: 0.18,
+        strokeColor: "#ef4444",
+        strokeWidth: 1.5,
+      };
+
+      const circle2 = turf.circle([lon, lat], r2, { steps: 64, units: "kilometers" });
+      circle2.properties = {
+        fillColor: "rgba(239, 68, 68, 0.20)",
+        fillOpacity: 0.25,
+        strokeColor: "#dc2626",
+        strokeWidth: 2,
+      };
+
+      const circle1 = turf.circle([lon, lat], r1, { steps: 64, units: "kilometers" });
+      circle1.properties = {
+        fillColor: "rgba(220, 38, 38, 0.35)",
+        fillOpacity: 0.40,
+        strokeColor: "#991b1b",
+        strokeWidth: 2.5,
+      };
+
+      circleFeatures.push(circle3, circle2, circle1);
+    } else {
+      let fillColor = "rgba(14, 165, 233, 0.25)";
+      let strokeColor = "#0284c7";
+      let innerFillColor = "rgba(2, 132, 199, 0.40)";
+
+      if (type === "LANDSLIDE") {
+        fillColor = "rgba(225, 29, 72, 0.25)";
+        strokeColor = "#e11d48";
+        innerFillColor = "rgba(190, 18, 60, 0.40)";
+      } else if (type === "GLOF") {
+        fillColor = "rgba(79, 70, 229, 0.25)";
+        strokeColor = "#4f46e5";
+        innerFillColor = "rgba(67, 56, 202, 0.40)";
+      }
+
+      // Outer shockwave buffer (100% radius)
+      const outerCircle = turf.circle([lon, lat], radius, { steps: 64, units: "kilometers" });
+      outerCircle.properties = {
+        fillColor,
+        fillOpacity: 0.25,
+        strokeColor,
+        strokeWidth: 2.5,
+      };
+
+      // Inner direct rupture core (30% radius)
+      const innerRadius = Math.max(0.5, radius * 0.3);
+      const innerCircle = turf.circle([lon, lat], innerRadius, { steps: 64, units: "kilometers" });
+      innerCircle.properties = {
+        fillColor: innerFillColor,
+        fillOpacity: 0.35,
+        strokeColor,
+        strokeWidth: 2,
+      };
+
+      circleFeatures.push(outerCircle, innerCircle);
+    }
+
+    source.setData({
+      type: "FeatureCollection",
+      features: circleFeatures,
+    });
+  }, [simulationMode, simulationEpicenter, simulationRadius, simulationType, mapLoaded, simulationResults]);
+
+  // Focus on Map transition
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !focusedLocation) return;
+    const norm = normalizeMapCoords(focusedLocation);
+    if (!norm) return;
+    mapRef.current.flyTo({
+      center: norm,
+      zoom: 14.5,
+      speed: 1.6,
+      curve: 1.2,
+      essential: true,
+    });
+  }, [focusedLocation, mapLoaded]);
+
+  // Auto pan/zoom to district geographic center when district filter changes
+  const prevDistrictRef = useRef<string | undefined>(district);
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    if (district === prevDistrictRef.current) return;
+    prevDistrictRef.current = district;
+
+    if (district && DISTRICT_CENTROIDS[district]) {
+      const { lat, lon, zoom } = DISTRICT_CENTROIDS[district];
+      mapRef.current.flyTo({
+        center: [lon, lat],
+        zoom,
+        duration: 1200,
+        essential: true,
+      });
+    } else if (!district && !simulationMode && !focusedLocation) {
+      mapRef.current.flyTo({
+        center: [UTTARAKHAND_DEFAULT_CENTER.lon, UTTARAKHAND_DEFAULT_CENTER.lat],
+        zoom: UTTARAKHAND_DEFAULT_CENTER.zoom,
+        duration: 1000,
+        essential: true,
+      });
+    }
+  }, [district, mapLoaded, simulationMode, focusedLocation]);
 
   // Function to show standardized RiskOS popup
   const showSettlementPopup = useCallback((feature: any, coords: [number, number]) => {
@@ -261,9 +872,9 @@ export default function MapView({
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; font-size: 11px;">
             <div style="background: ${bgBox}; padding: 5px 8px; border-radius: 6px; border: 1px solid ${borderBox};">
               <span style="display:block; font-size: 9px; color: ${textSub}; font-weight: 600; text-transform: uppercase;">
-                ${isHi ? "ज़िला" : "District"}
+                ${isHi ? "जिला" : "District"}
               </span>
-              <strong style="color: ${textTitle}; font-size: 12px;">${props.district || "Uttarakhand"}</strong>
+              <strong style="color: ${textTitle}; font-size: 12px;">${isHi ? (DISTRICT_NAMES_HI[props.district] || props.district || "उत्तराखंड") : (props.district || "Uttarakhand")}</strong>
             </div>
 
             <div style="background: ${bgBox}; padding: 5px 8px; border-radius: 6px; border: 1px solid ${borderBox};">
@@ -305,6 +916,65 @@ export default function MapView({
               ${isHi ? "सम्पूर्ण जोखिम प्रोफ़ाइल देखें →" : "Open Detailed Risk Dossier →"}
             </button>
           </div>
+        </div>
+      `)
+      .addTo(mapRef.current);
+
+    activePopupRef.current = popup;
+  }, []);
+
+  // Standardized Safe Site / Facility Inspection Popup
+  const showSafeSitePopup = useCallback((feat: any, coords: [number, number]) => {
+    if (!mapRef.current) return;
+    const props = feat.properties || {};
+    const rem = props.remaining_capacity ?? props.estimated_capacity;
+    const isHi = langRef.current === "hi";
+
+    const facilityTypeLabels: Record<string, { en: string; hi: string; icon: string }> = {
+      health: { en: "Emergency Hospital / Medical Center", hi: "आपातकालीन अस्पताल / स्वास्थ्य केंद्र", icon: "🏥" },
+      school: { en: "Evacuation School / Inter College", hi: "निकासी विद्यालय / राहत परिसर", icon: "🏫" },
+      shelter: { en: "Official Relocation Shelter", hi: "आधिकारिक सुरक्षित पुनर्वास स्थल", icon: "⛺" },
+      helipad: { en: "Strategic Helipad / Air Base", hi: "सामरिक हेलीपैड / एयर बेस", icon: "🚁" },
+      ration: { en: "Relief Food & Ration Depot", hi: "राहत खाद्य एवं रसद डिपो", icon: "🍞" },
+      siren: { en: "Early Warning Radar Siren", hi: "पूर्व चेतावनी रडार / सायरन टावर", icon: "🚨" },
+    };
+
+    const fType = props.facility_type || "shelter";
+    const typeInfo = facilityTypeLabels[fType] || facilityTypeLabels.shelter;
+
+    if (activePopupRef.current) {
+      activePopupRef.current.remove();
+    }
+
+    const isDark = themeRef.current === "dark";
+    const bgCard = isDark ? "#0F172A" : "#FFFFFF";
+    const textTitle = isDark ? "#F8FAFC" : "#0B2545";
+    const textSub = isDark ? "#94A3B8" : "#64748B";
+    const borderBox = isDark ? "#334155" : "#E2E8F0";
+
+    const popup = new maplibregl.Popup({ offset: 14, closeButton: true, maxWidth: "320px", className: "riskos-popup" })
+      .setLngLat(coords as maplibregl.LngLatLike)
+      .setHTML(`
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 6px; background:${bgCard}; color:${textTitle}; border-radius: 8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border-bottom:1px solid ${borderBox};padding-bottom:6px;">
+            <span style="font-size:18px;">${typeInfo.icon}</span>
+            <span style="font-weight:700;color:${textTitle};font-size:13px;line-height:1.2;">${props.name}</span>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:${isDark ? '#34D399' : '#059669'};text-transform:uppercase;margin-bottom:8px;padding:2px 8px;background:${isDark ? '#064E3B44' : '#ECFDF5'};border-radius:4px;display:inline-block;border:1px solid ${isDark ? '#065F46' : '#A7F3D0'};">
+            ${isHi ? typeInfo.hi : typeInfo.en}
+          </div>
+          <table style="width:100%;font-size:11px;border-collapse:collapse;color:${textTitle};">
+            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "जिला" : "District"}</td><td style="padding:4px 0;font-weight:600;text-align:right;">${isHi ? (DISTRICT_NAMES_HI[props.district] || props.district) : props.district}</td></tr>
+            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "कुल क्षमता" : "Total Capacity"}</td><td style="padding:4px 0;font-weight:600;text-align:right;">${Number(props.estimated_capacity || 0).toLocaleString()}</td></tr>
+            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "उपलब्ध बिस्तर / स्थान" : "Available Beds / Slots"}</td><td style="padding:4px 0;color:#059669;font-weight:700;text-align:right;">${Number(rem || 0).toLocaleString()}</td></tr>
+            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "सड़क संपर्क" : "Road Connectivity"}</td><td style="padding:4px 0;color:${props.road_access ? '#059669' : '#DC2626'};font-weight:600;text-align:right;">${props.road_access ? (isHi ? 'उपलब्ध (बारहमासी)' : 'All-Weather') : (isHi ? 'अवरुद्ध / अनुपलब्ध' : 'Blocked')}</td></tr>
+            <tr><td style="padding:5px 0 0;color:${textSub};" colspan="2">
+              <div style="font-size:10px;color:${textSub};margin-top:2px;border-top:1px dashed ${borderBox};padding-top:4px;line-height:1.4;">
+                <strong style="color:${textTitle};">${isHi ? "नोडल अधिकारी / नियंत्रण कक्ष:" : "Nodal Officer / Control Room:"}</strong><br/>
+                ${props.emergency_contact || (isHi ? `डीईओसी नियंत्रण कक्ष (${DISTRICT_NAMES_HI[props.district] || props.district}) • टोल-फ्री 1077 / 112` : `DEOC Control Room (${props.district}) • Toll-Free 1077 / 112`)}
+              </div>
+            </td></tr>
+          </table>
         </div>
       `)
       .addTo(mapRef.current);
@@ -421,6 +1091,7 @@ export default function MapView({
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
+      preserveDrawingBuffer: true,
       maxZoom: 20,
       minZoom: 5,
       style: {
@@ -444,16 +1115,16 @@ export default function MapView({
             tileSize: 256,
             maxzoom: 20,
           },
-          // 3a. Street / Cadastral Administrative Basemap Light (Carto Positron Light)
+          // 3a. Street / Cadastral Administrative Basemap Light (Carto Voyager)
           "carto-street-light": {
             type: "raster",
             tiles: [
-              "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-              "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-              "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+              "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+              "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+              "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
             ],
             tileSize: 256,
-            maxzoom: 19,
+            maxzoom: 20,
           },
           // 3b. Street / Cadastral Administrative Basemap Dark (Carto Dark Matter)
           "carto-street-dark": {
@@ -469,7 +1140,11 @@ export default function MapView({
           // 4. OpenTopoMap Elevation & Terrain Contours
           "open-topo": {
             type: "raster",
-            tiles: ["https://tile.opentopomap.org/{z}/{x}/{y}.png"],
+            tiles: [
+              "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+              "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
+              "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",
+            ],
             tileSize: 256,
             maxzoom: 17,
           },
@@ -521,7 +1196,7 @@ export default function MapView({
       center: [79.25, 30.15],
       zoom: 7.8,
       attributionControl: false,
-    });
+    } as any);
 
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left");
 
@@ -676,6 +1351,24 @@ export default function MapView({
         type: "line",
         source: "simulation-lines",
         paint: { "line-color": "#10B981", "line-width": 4, "line-opacity": 0.85 },
+      });
+
+      // 4b. Spatial Buffer Tool Source & Symbology
+      map.addSource("buffer-tool-source", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "buffer-tool-fill",
+        type: "fill",
+        source: "buffer-tool-source",
+        paint: { "fill-color": "#EF4444", "fill-opacity": 0.2 },
+      });
+      map.addLayer({
+        id: "buffer-tool-line",
+        type: "line",
+        source: "buffer-tool-source",
+        paint: { "line-color": "#DC2626", "line-width": 2.5, "line-dasharray": [2, 2] },
       });
 
       // 5. Safe Relocation Shelters Source & Symbology
@@ -839,29 +1532,32 @@ export default function MapView({
           return;
         }
 
-        // Disaster simulation click
-        if (simulationModeRef.current && onMapClickRef.current) {
+        // Target Epicenter & Hazard Radius Tool interaction
+        if (isTargetToolActiveRef.current) {
+          const lat = e.lngLat.lat;
+          const lon = e.lngLat.lng;
+          handleSetTargetEpicenter(lat, lon, targetRadiusKmRef.current);
+          return;
+        }
+
+        // Disaster simulation click: set epicenter
+        if (simulationModeRef.current) {
           const lat = e.lngLat.lat;
           const lon = e.lngLat.lng;
 
-          if (!epicenterMarkerRef.current) {
-            const el = document.createElement("div");
-            el.innerHTML = `<svg class="w-6 h-6 text-red-600 drop-shadow-md" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>`;
-            el.style.transform = "translate(-50%, -100%)";
-            epicenterMarkerRef.current = new maplibregl.Marker({ element: el })
-              .setLngLat([lon, lat])
-              .addTo(map);
-          } else {
-            epicenterMarkerRef.current.setLngLat([lon, lat]);
+          if (onEpicenterChangeRef.current) {
+            onEpicenterChangeRef.current({ lat, lon });
           }
-
-          onMapClickRef.current(lat, lon);
+          if (onMapClickRef.current) {
+            onMapClickRef.current(lat, lon);
+          }
+          return;
         }
       });
 
       // Habitation Click: Open Standardized RiskOS Popup
       map.on("click", "habitations-layer", (e: any) => {
-        if (measuringRef.current || simulationModeRef.current) return;
+        if (measuringRef.current || simulationModeRef.current || isTargetToolActiveRef.current) return;
         const feat = e.features?.[0];
         if (!feat) return;
         const coords = (feat.geometry as any).coordinates.slice();
@@ -870,41 +1566,34 @@ export default function MapView({
         if (onSelectHabitation && id) onSelectHabitation(Number(id));
       });
 
-      // Safe Site Click: Open Detail
+      // Safe Site Click: Pan and Open Detail Inspection Popup
       map.on("click", "safesites-layer", (e: any) => {
-        if (measuringRef.current || simulationModeRef.current) return;
+        if (measuringRef.current || simulationModeRef.current || isTargetToolActiveRef.current) return;
         const feat = e.features?.[0];
         if (!feat) return;
-        const props = feat.properties as any;
-        const coords = (feat.geometry as any).coordinates.slice();
-        const rem = props.remaining_capacity ?? props.estimated_capacity;
-        const isHi = langRef.current === "hi";
+        const rawCoords = (feat.geometry as any).coordinates;
+        const normCoords = normalizeMapCoords({ coordinates: rawCoords }) || [rawCoords[0], rawCoords[1]];
 
-        new maplibregl.Popup({ offset: 12, closeButton: true, maxWidth: "280px" })
-          .setLngLat(coords as maplibregl.LngLatLike)
-          .setHTML(`
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 4px; color: #0F172A;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <div style="width:10px;height:10px;border-radius:50%;background:#10B981;flex-shrink:0;"></div>
-                <span style="font-weight:700;color:#0B2545;font-size:13px;">${props.name}</span>
-              </div>
-              <div style="font-size:10px;font-weight:700;color:#10B981;text-transform:uppercase;margin-bottom:8px;">
-                ${isHi ? "आधिकारिक सुरक्षित पुनर्वास स्थल" : "Official Relocation Shelter"}
-              </div>
-              <table style="width:100%;font-size:11px;border-collapse:collapse;color:#334155;">
-                <tr><td style="padding:2px 0;color:#64748B;">${isHi ? "ज़िला" : "District"}</td><td style="padding:2px 0;font-weight:600;text-align:right;">${props.district}</td></tr>
-                <tr><td style="padding:2px 0;color:#64748B;">${isHi ? "कुल क्षमता" : "Total Capacity"}</td><td style="padding:2px 0;font-weight:600;text-align:right;">${Number(props.estimated_capacity || 0).toLocaleString()}</td></tr>
-                <tr><td style="padding:2px 0;color:#64748B;">${isHi ? "उपलब्ध" : "Available"}</td><td style="padding:2px 0;color:#10B981;font-weight:700;text-align:right;">${Number(rem || 0).toLocaleString()}</td></tr>
-              </table>
-            </div>
-          `)
-          .addTo(map);
+        map.flyTo({
+          center: normCoords,
+          zoom: 14.5,
+          duration: 900,
+          essential: true,
+        });
+
+        showSafeSitePopup(feat, normCoords);
       });
 
       // Hover Cursors
       for (const layer of ["habitations-layer", "safesites-layer"]) {
-        map.on("mouseenter", layer, () => { map.getCanvas().style.cursor = "pointer"; });
-        map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = measuringRef.current ? "crosshair" : ""; });
+        map.on("mouseenter", layer, () => {
+          if (!isTargetToolActiveRef.current && !measuringRef.current) {
+            map.getCanvas().style.cursor = "pointer";
+          }
+        });
+        map.on("mouseleave", layer, () => {
+          map.getCanvas().style.cursor = (measuringRef.current || isTargetToolActiveRef.current || simulationModeRef.current) ? "crosshair" : "";
+        });
       }
 
       setMapLoaded(true);
@@ -1043,17 +1732,29 @@ export default function MapView({
     }
   }, [district, hazardLevel, mapLoaded, simulationResults, queryClient, habitationsData]);
 
-  // Refresh safe sites
+  // Refresh safe sites with facility category filter & viewport sync
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
     let alive = true;
-    getSafeSites().then((geojson) => {
+    const typeParam = selectedFacility === "all" ? undefined : selectedFacility;
+    getSafeSites({ district: district || undefined, type: typeParam }).then((geojson) => {
       if (!alive || !mapRef.current) return;
       safeSitesRef.current = geojson;
       (mapRef.current.getSource("safesites") as any)?.setData(geojson);
+
+      // Active Facility Filter & Map Pin Sync
+      if (geojson && geojson.features && geojson.features.length > 0) {
+        if (selectedFacility !== "all") {
+          // Fit viewport to encompass the filtered facility markers
+          const bbox = turf.bbox(geojson);
+          if (bbox && isFinite(bbox[0]) && isFinite(bbox[1]) && isFinite(bbox[2]) && isFinite(bbox[3])) {
+            mapRef.current.fitBounds(bbox as any, { padding: 90, maxZoom: 14, duration: 1000 });
+          }
+        }
+      }
     });
     return () => { alive = false; };
-  }, [mapLoaded]);
+  }, [mapLoaded, selectedFacility, district]);
 
   // Layer visibility toggles
   useEffect(() => {
@@ -1196,64 +1897,233 @@ export default function MapView({
     <div className="relative w-full h-full select-none overflow-hidden group">
       <div ref={mapContainer} className="w-full h-full" />
 
-      {/* Floating Action Controls (Top Right) */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
-        {/* Basemap Switcher Floating Button & Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setBasemapDropdownOpen(!basemapDropdownOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/95 dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-lg shadow-xl text-xs font-bold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            title={t("basemap_title")}
-          >
-            <MapIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="capitalize">{t(`basemap_${activeBasemap}`)}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          </button>
+      {/* ━━━ LAYER 1: Dedicated Top Action Dock (Floated at top-3) ━━━ */}
+      <div className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between pointer-events-none gap-4">
+        {/* LEFT: Search Bar & Core GIS Tools */}
+        <div className="flex items-center gap-2 pointer-events-auto bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-xl">
+          {/* Search Input */}
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              placeholder={t("searchPlaceholder") || t("search_map_placeholder") || "Search habitations / districts..."}
+              value={mapSearchText}
+              onChange={(e) => {
+                setMapSearchText(e.target.value);
+                setSearchOpen(true);
+              }}
+              onFocus={() => setSearchOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchResults.length > 0) {
+                  handleSelectSearchResult(searchResults[0]);
+                }
+              }}
+              className="w-56 focus:w-72 transition-all duration-200 pl-9 pr-7 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 rounded-lg border-0 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+            {mapSearchText && (
+              <button
+                onClick={() => {
+                  setMapSearchText("");
+                  setSearchResults([]);
+                  setSearchOpen(false);
+                }}
+                className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
 
-          {basemapDropdownOpen && (
-            <div className="absolute right-0 mt-1 w-52 bg-white dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-2xl p-2 z-30 space-y-1 text-xs">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1 block">
-                {t("basemap_title")}
-              </span>
-              <button
-                onClick={() => switchBasemap("satellite")}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                  activeBasemap === "satellite"
-                    ? "bg-blue-600 text-white font-bold"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>🛰️ {t("basemap_satellite")}</span>
-                {activeBasemap === "satellite" && <span className="text-[10px]">✓</span>}
-              </button>
-              <button
-                onClick={() => switchBasemap("street")}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                  activeBasemap === "street"
-                    ? "bg-blue-600 text-white font-bold"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>🗺️ {t("basemap_street")}</span>
-                {activeBasemap === "street" && <span className="text-[10px]">✓</span>}
-              </button>
-              <button
-                onClick={() => switchBasemap("topo")}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                  activeBasemap === "topo"
-                    ? "bg-blue-600 text-white font-bold"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span>⛰️ {t("basemap_topo")}</span>
-                {activeBasemap === "topo" && <span className="text-[10px]">✓</span>}
-              </button>
-            </div>
-          )}
+            {/* Autocomplete Dropdown */}
+            {searchOpen && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 mt-1 w-72 bg-white dark:bg-[#0F172Aee] backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1 max-h-60 overflow-y-auto z-40">
+                {searchResults.map((feat: any) => (
+                  <button
+                    key={feat.properties?.id || feat.id || feat.name}
+                    onClick={() => handleSelectSearchResult(feat)}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-xs flex items-center justify-between text-slate-800 dark:text-slate-200 transition"
+                  >
+                    <span className="font-semibold truncate">{feat.isDistrict ? feat.name : feat.properties?.name}</span>
+                    <span className="text-[10px] text-slate-400 font-mono ml-2 flex-shrink-0">
+                      {feat.isDistrict ? "District" : feat.properties?.district}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+
+          {/* GIS Action Icons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleLayers}
+              title={t("map.layers") || "Layers"}
+              aria-label={t("map.layers") || "Toggle Layers"}
+              className={`p-1.5 rounded-lg transition ${
+                !layersCollapsed
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+            </button>
+            <button
+              onClick={toggleMeasurementTool}
+              title={t("map.measure") || "Measure"}
+              aria-label={t("map.measure") || "Distance Measurement Tool"}
+              className={`p-1.5 rounded-lg transition ${
+                measuring
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
+            >
+              <Ruler className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                if (isTargetToolActive) {
+                  setIsTargetToolActive(false);
+                  clearTargetTool();
+                } else {
+                  setIsTargetToolActive(true);
+                }
+              }}
+              title={t("map.targetTool") || "Disaster Epicenter & Hazard Radius Tool"}
+              aria-label={t("map.targetTool") || "Spatial Buffer / Simulation"}
+              className={`p-1.5 rounded-lg transition ${
+                isTargetToolActive
+                  ? "bg-rose-600 text-white shadow-md ring-2 ring-rose-400"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
+            >
+              <Target className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleExportMapViewport}
+              title={t("map.export") || "Export Snapshot"}
+              aria-label={t("map.export") || "Export Map Viewport"}
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* GIS Controls Dock */}
-        <div className="bg-white/95 dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-lg shadow-xl overflow-hidden flex flex-col">
+        {/* RIGHT: Standalone Basemap Switcher & Settlement Analytics Drawer Toggle */}
+        <div className="flex items-center gap-2 pointer-events-auto shrink-0">
+          {/* Basemap Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setBasemapDropdownOpen(!basemapDropdownOpen)}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
+            >
+              <MapIcon className="w-4 h-4 text-blue-400" />
+              <span>{activeBasemap === "satellite" ? t("map.satelliteHybrid") : activeBasemap === "street" ? t("map.streetMap") : t("map.topoMap")}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+
+            {basemapDropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-2xl p-2 z-40 space-y-1 text-xs">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1 block">
+                  {t("basemap_title")}
+                </span>
+                <button
+                  onClick={() => { switchBasemap("satellite"); setBasemapDropdownOpen(false); }}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
+                    activeBasemap === "satellite"
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span>🛰️ {t("map.satelliteHybrid")}</span>
+                  {activeBasemap === "satellite" && <span className="text-[10px]">✓</span>}
+                </button>
+                <button
+                  onClick={() => { switchBasemap("street"); setBasemapDropdownOpen(false); }}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
+                    activeBasemap === "street"
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span>🗺️ {t("map.streetMap")}</span>
+                  {activeBasemap === "street" && <span className="text-[10px]">✓</span>}
+                </button>
+                <button
+                  onClick={() => { switchBasemap("topo"); setBasemapDropdownOpen(false); }}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
+                    activeBasemap === "topo"
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span>⛰️ {t("map.topoMap")}</span>
+                  {activeBasemap === "topo" && <span className="text-[10px]">✓</span>}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Settlement Analytics Drawer Button */}
+          {onToggleAnalytics && (
+            <button
+              onClick={onToggleAnalytics}
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl shadow-xl transition whitespace-nowrap ${
+                isAnalyticsOpen
+                  ? "bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-blue-600/30 ring-2 ring-blue-400/40"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 text-white" />
+              <span className="whitespace-nowrap">{t("settlement_analytics") || "Settlement Analytics"}</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-blue-800 text-[10px] text-white font-mono font-bold">
+                {(settlementCount ?? 13967).toLocaleString()}
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ━━━ LAYER 2: Dedicated Facility Filter Ribbon (Floated at top-16) ━━━ */}
+      <div className="absolute top-16 left-4 z-20 pointer-events-auto">
+        <div className="flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-lg max-w-[calc(100vw-32px)] sm:max-w-[80vw] overflow-x-auto scrollbar-none">
+          {[
+            { id: "all", icon: "🌐", label: "All Facilities", key: "facilities.all" },
+            { id: "health", icon: "🏥", label: "Health Centers", key: "facilities.healthCenters" },
+            { id: "school", icon: "🏫", label: "Evacuation Schools", key: "facilities.schools" },
+            { id: "shelter", icon: "⛺", label: "Safe Shelters", key: "facilities.safeShelters" },
+            { id: "helipad", icon: "🚁", label: "Helipads", key: "facilities.helipads" },
+            { id: "ration", icon: "🍞", label: "Relief Ration Depots", key: "facilities.reliefDepots" },
+            { id: "siren", icon: "🚨", label: "Alert Sirens", key: "facilities.sirens" },
+          ].map((fac) => {
+            const facLabel = t(fac.key) || t(fac.label) || fac.label;
+            const isActive = selectedFacility === fac.id;
+            return (
+              <button
+                key={fac.id}
+                onClick={() => {
+                  setSelectedFacility(fac.id);
+                  if (!showSites) setShowSites(true);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5 ${
+                  isActive
+                    ? "bg-blue-600 text-white font-bold shadow-sm"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                }`}
+                title={facLabel}
+              >
+                <span>{fac.icon}</span>
+                <span className="whitespace-nowrap">{facLabel}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Floating Action Controls (Top Right, docked below ribbon) */}
+      <div className="absolute top-16 right-4 z-20 flex flex-col items-end gap-2">
+        <div className="bg-white/95 dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-xl overflow-hidden flex flex-col">
           <button
             onClick={handleZoomIn}
             className="p-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition"
@@ -1315,7 +2185,7 @@ export default function MapView({
 
       {/* Active Measurement Distance Banner */}
       {measuring && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-amber-900/90 text-white backdrop-blur-md border border-amber-600 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-3 text-xs">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-amber-900/90 text-white backdrop-blur-md border border-amber-600 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-3 text-xs">
           <Crosshair className="w-4 h-4 text-amber-300 animate-spin" />
           <div>
             <span className="font-bold block">{t("measure_active")}</span>
@@ -1324,7 +2194,7 @@ export default function MapView({
                 {t("route_distance")}: {measureDistanceKm} km ({measurePoints.length} points)
               </span>
             ) : (
-              <span className="text-amber-300 text-[10px]">Click two or more points on map</span>
+              <span className="text-amber-300 text-[10px]">{t("Click two or more points on map")}</span>
             )}
           </div>
           <button
@@ -1345,7 +2215,7 @@ export default function MapView({
 
       {/* Active Evacuation Route Info Bar */}
       {activeRouteInfo && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-emerald-950/90 text-white backdrop-blur-md border border-emerald-600 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 text-xs max-w-md">
+        <div className="absolute top-28 left-1/2 -translate-x-1/2 z-20 bg-emerald-950/90 text-white backdrop-blur-md border border-emerald-600 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 text-xs max-w-md">
           <Route className="w-5 h-5 text-emerald-400 flex-shrink-0" />
           <div className="min-w-0 flex-1">
             <span className="font-bold text-emerald-300 block truncate">
@@ -1367,22 +2237,152 @@ export default function MapView({
         </div>
       )}
 
-      {/* Grouped Layer & Legend Card (Floating Top-Left) */}
-      {layersCollapsed ? (
-        <div className="absolute top-4 left-4 z-20">
+      {/* Target Mode Active Toast Notification Banner */}
+      {isTargetToolActive && !targetBrief && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2.5 px-4 py-2 rounded-full bg-rose-600/95 text-white text-xs font-semibold shadow-2xl border border-rose-400 backdrop-blur-md animate-in fade-in slide-in-from-top-3">
+          <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping shrink-0" />
+          <span>{t("target_mode_active")}</span>
           <button
-            onClick={toggleLayers}
-            className="flex items-center gap-2 px-3.5 py-2 bg-white/95 dark:bg-[#111827ee] hover:bg-slate-50 dark:hover:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-[#374151] rounded-full shadow-xl backdrop-blur-md text-xs font-bold transition-all group hover:scale-105"
-            title="Open Layers & Legend (L)"
-            aria-label="Open Layers and Legend (L)"
+            onClick={() => {
+              setIsTargetToolActive(false);
+              clearTargetTool();
+            }}
+            className="ml-2 p-0.5 rounded-full hover:bg-rose-700/80 transition"
+            aria-label="Cancel"
           >
-            <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:rotate-12 transition-transform" />
-            <span>{t("layers_header")}</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">L</span>
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
-      ) : (
-        <div className="absolute top-4 left-4 z-20 bg-white/95 dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-2xl w-72 max-w-[calc(100vw-2rem)] transition-all animate-in fade-in zoom-in-95 duration-200">
+      )}
+
+      {/* Floating BharatMaps-style Epicenter Incident Brief Card */}
+      {targetBrief && (
+        <div className="absolute bottom-12 left-4 z-30 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto flex flex-col gap-3">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <Target className="w-4 h-4" />
+              </span>
+              <div>
+                <h4 className="text-xs font-black tracking-wider uppercase text-slate-900 dark:text-white flex items-center gap-1.5">
+                  {t("epicenter_incident_brief")}
+                </h4>
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                  <span>{targetBrief.lat.toFixed(4)}° N, {targetBrief.lon.toFixed(4)}° E</span>
+                  <span>•</span>
+                  <span className="font-semibold text-rose-600 dark:text-rose-400">
+                    {lang === "hi" ? (DISTRICT_NAMES_HI[targetBrief.district] || targetBrief.district) : targetBrief.district}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setIsTargetToolActive(false);
+                clearTargetTool();
+              }}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title="Close Brief"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Interactive Dynamic Radius Slider */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80">
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">{t("Hazard Impact Radius")}</span>
+              <span className="font-mono font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded text-[11px]">
+                {targetRadiusKm} km
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="50"
+              value={targetRadiusKm}
+              onChange={(e) => handleRadiusChange(Number(e.target.value))}
+              className="w-full accent-rose-600 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer"
+            />
+            <div className="flex justify-between text-[9px] text-slate-400 font-mono mt-1">
+              <span>1 km</span>
+              <span>25 km</span>
+              <span>50 km</span>
+            </div>
+          </div>
+
+          {/* Spatial Impact Telemetry Cards */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block uppercase">
+                {t("habitations_impacted")}
+              </span>
+              <span className="text-lg font-black text-rose-600 dark:text-rose-400">
+                {targetBrief.habitationsCount.toLocaleString()}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block uppercase">
+                {t("est_pop_affected")}
+              </span>
+              <span className="text-lg font-black text-amber-600 dark:text-amber-400">
+                {targetBrief.totalPopulation.toLocaleString()}
+              </span>
+            </div>
+          </div>
+
+          {/* Nearest Safe Evacuation Shelters Outside Perimeter */}
+          <div>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider mb-1.5">
+              {t("nearest_safe_shelters_outside")}
+            </span>
+            {targetBrief.nearestShelters.length > 0 ? (
+              <div className="space-y-1.5">
+                {targetBrief.nearestShelters.map((s, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/40 text-[11px]"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
+                        {s.name}
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
+                      {s.distanceKm} km
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-2 text-center text-[10px] text-slate-400 italic bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                {lang === "hi" ? "बफर परिधि के बाहर कोई नामित आश्रय उपलब्ध नहीं है" : "No designated shelters loaded outside buffer perimeter"}
+              </div>
+            )}
+          </div>
+
+          {/* Action Trigger: Run Full Blast Simulation */}
+          <button
+            onClick={() => {
+              if (onActivateSimulation) {
+                onActivateSimulation({ lat: targetBrief.lat, lon: targetBrief.lon }, targetRadiusKm);
+              }
+              setIsTargetToolActive(false);
+              clearTargetTool();
+            }}
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-600/20 transition flex items-center justify-center gap-2 group cursor-pointer"
+          >
+            <span>{t("launch_simulation_btn")}</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+      )}
+
+      {/* Grouped Layer & Legend Card (Docks right beneath Floating Tool Dock) */}
+      {!layersCollapsed && (
+        <div className="absolute top-28 left-4 z-30 bg-white/95 dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-2xl w-72 max-w-[calc(100vw-2rem)] transition-all animate-in fade-in zoom-in-95 duration-200">
           {/* Card Header with Collapse */}
           <div className="p-3 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1495,7 +2495,7 @@ export default function MapView({
               /* Legend View */
               <div className="space-y-2.5 py-1">
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                  {t("legend_desc")}
+                  {t("map.officialClassification") || t("legend_desc")}
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2.5 p-1.5 rounded bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60">
@@ -1549,6 +2549,46 @@ export default function MapView({
           </button>
         </div>
       )}
+
+      {/* Basemap Quick-Preview Thumb (Bottom Right, BharatMaps Style) */}
+      <div className="absolute bottom-10 right-4 z-20">
+        <button
+          onClick={() => {
+            const nextMap: Record<BasemapType, BasemapType> = {
+              satellite: "street",
+              street: "topo",
+              topo: "satellite",
+            };
+            switchBasemap(nextMap[activeBasemap]);
+          }}
+          className="group relative flex flex-col items-center p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border-2 border-white dark:border-slate-700 rounded-xl shadow-2xl hover:scale-105 transition-all overflow-hidden"
+          title={`Switch basemap (current: ${activeBasemap})`}
+          aria-label="Switch basemap view"
+        >
+          <div className="w-14 h-14 rounded-lg overflow-hidden relative flex items-center justify-center bg-slate-800 text-white font-bold text-[10px] shadow-inner">
+            {activeBasemap === "satellite" ? (
+              <div className="w-full h-full bg-gradient-to-br from-emerald-800 to-sky-900 flex flex-col items-center justify-center p-1 text-center">
+                <span className="text-sm">🗺️</span>
+                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Street")}</span>
+              </div>
+            ) : activeBasemap === "street" ? (
+              <div className="w-full h-full bg-gradient-to-br from-amber-700 to-stone-800 flex flex-col items-center justify-center p-1 text-center">
+                <span className="text-sm">⛰️</span>
+                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Topo")}</span>
+              </div>
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-slate-900 to-indigo-950 flex flex-col items-center justify-center p-1 text-center">
+                <span className="text-sm">🛰️</span>
+                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Satellite")}</span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition" />
+          </div>
+          <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5 tracking-wider uppercase">
+            {activeBasemap === "satellite" ? t("Street") : activeBasemap === "street" ? t("Topo") : t("Satellite")}
+          </span>
+        </button>
+      </div>
 
       {/* RiskOS Clean Bottom Status Ribbon */}
       <div className="absolute bottom-2 right-4 z-10 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md text-[#0F172A] dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 px-3 py-1.5 rounded-full text-[10px] font-mono shadow-lg flex items-center gap-3">

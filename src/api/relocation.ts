@@ -49,3 +49,23 @@ export async function updateRelocationPlan(
   const res = await client.patch<RelocationPlan>(`/relocation/plans/${id}/`, data);
   return res.data;
 }
+
+export async function generateRelocationPlan(data: {
+  habitation_id: number;
+  safe_site_id?: number | null;
+  population?: number;
+  priority?: PriorityLevel;
+}): Promise<RelocationPlan> {
+  const res = await client.post<RelocationPlan>("/relocation/generate/", data);
+  return res.data;
+}
+
+export async function broadcastEmergencyAlert(data: {
+  title: string;
+  message: string;
+  severity: AlertSeverity;
+  habitation_id?: number | null;
+}): Promise<AlertItem> {
+  const res = await client.post<AlertItem>("/alerts/broadcast/", data);
+  return res.data;
+}

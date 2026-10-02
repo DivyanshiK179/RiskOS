@@ -34,7 +34,7 @@ export default function HabitationDetailPanel({
   return (
     <aside className="absolute right-0 top-0 h-full w-[380px] bg-white dark:bg-[#0a1220] border-l border-slate-200 dark:border-slate-800 flex flex-col z-20 animate-slide-in-right overflow-hidden shadow-2xl">
       {/* Header */}
-      <div className="flex-none flex items-start justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-[#080e1d]">
+      <div className="flex-none flex items-start justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#080e1d]">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-widest">{t("Settlement")}</span>
@@ -79,7 +79,7 @@ export default function HabitationDetailPanel({
         )}
 
         {data && (
-          <div className="divide-y divide-slate-800">
+          <div className="divide-y divide-slate-200 dark:divide-slate-800">
             {/* Official quick actions */}
             {isOfficial && (
               <div className="p-3 flex gap-2">
@@ -208,7 +208,7 @@ export default function HabitationDetailPanel({
                   {isOfficial && onInitiatePlan && (
                     <button
                       onClick={() => onInitiatePlan(data.id, site.id, data.population)}
-                      className="mt-2 w-full text-[11px] font-medium text-blue-400 hover:text-blue-300 border border-blue-900/60 hover:border-blue-700 rounded py-1.5 transition-colors"
+                      className="mt-2 w-full text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-transparent border border-blue-200 dark:border-blue-900/60 hover:border-blue-400 dark:hover:border-blue-700 rounded py-1.5 transition-colors"
                     >
                       {t("Use this site for relocation plan →")}
                     </button>
@@ -231,7 +231,7 @@ function ScoreBar({ label, value, max, color }: { label: string; value: number; 
         <span className="text-[11px] text-slate-500 dark:text-slate-500 capitalize">{label}</span>
         <span className="text-[11px] font-mono text-slate-600 dark:text-slate-400">{value.toFixed(1)}</span>
       </div>
-      <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+      <div className="h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
         <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
       </div>
     </div>

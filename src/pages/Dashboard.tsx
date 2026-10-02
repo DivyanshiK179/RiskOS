@@ -13,7 +13,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  RotateCcw,
+  Radio,
+  Flame,
+  Printer,
+  Target,
+  Crosshair,
+  MapPin
 } from "lucide-react";
 import { getHabitations } from "../api/habitations";
 import { getRelocationPlans, updateRelocationPlan, getAlerts, deleteAlert } from "../api/relocation";
@@ -21,10 +28,12 @@ import { getSafeSites } from "../api/safesites";
 import { getGeoStats, simulateDisaster, type SimulationResult } from "../api/stats";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
+import { useSearchParams } from "react-router-dom";
 import MapView from "../components/MapView";
 import HabitationDetailPanel from "../components/HabitationDetailPanel";
 import CreatePlanModal from "../components/CreatePlanModal";
 import CreateAlertModal from "../components/CreateAlertModal";
+import IncidentActionPlanModal from "../components/IncidentActionPlanModal";
 import GoiTopBar from "../components/GoiTopBar";
 import GoiBrandHeader from "../components/GoiBrandHeader";
 import GoiFooter from "../components/GoiFooter";
@@ -34,7 +43,9 @@ import type {
   RelocationPlan,
   AlertItem,
   SafeSiteFeature,
+  SafeSiteGeoJSON,
   PlanStatus,
+  AlertSeverity,
 } from "../types";
 import {
   hazardBadgeClass,
@@ -44,9 +55,11 @@ import {
   priorityBadgeClass,
   alertSeverityClass,
 } from "../lib/utils";
+import { extractCleanDistricts } from "../lib/districts";
 
 export default function Dashboard() {
   const { t, lang } = useTranslation();
+  const [searchParams] = useSearchParams();
   const {
     sidebarCollapsed,
     toggleSidebar,
@@ -54,12 +67,51 @@ export default function Dashboard() {
     toggleInspector,
     toggleLayers,
     toggleZenMode,
+    setIsTargetToolActive,
+    dashboardPreconfig,
+    setDashboardPreconfig,
   } = useUIStore();
-  const [tab, setTab] = useState("map");
+
+  const [tab, setTab] = useState(() => {
+    const qTab = searchParams.get("tab") || dashboardPreconfig?.tab;
+    if (qTab === "risk-map" || qTab === "map") return "map";
+    if (qTab === "safe-sites" || qTab === "safesites") return "safesites";
+    if (qTab === "simulation" || qTab === "simulate") return "simulate";
+    if (qTab === "plans") return "plans";
+    if (qTab === "alerts") return "alerts";
+    if (qTab === "analytics") return "analytics";
+    if (qTab === "audit") return "audit";
+    return "map";
+  });
   const [districtFilter, setDistrictFilter] = useState("");
-  const [hazardFilter, setHazardFilter] = useState("");
+  const [hazardFilter, setHazardFilter] = useState(() => {
+    const qHaz = searchParams.get("hazard") || searchParams.get("riskLevel") || dashboardPreconfig?.hazardFilter;
+    if (qHaz === "CRITICAL" || qHaz === "RED") return "RED";
+    if (qHaz === "HIGH") return "HIGH";
+    if (qHaz === "MODERATE") return "MODERATE";
+    if (qHaz === "SAFE") return "SAFE";
+    return "";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedHabId, setSelectedHabId] = useState<number | null>(null);
+
+  const [showLandslideLayer, setShowLandslideLayer] = useState<boolean>(() => {
+    const qLayer = searchParams.get("layer");
+    const qLandslide = searchParams.get("landslide");
+    if (qLayer === "landslide" || qLandslide === "true" || dashboardPreconfig?.showLandslide) return true;
+    return true;
+  });
+  const [showFloodLayer, setShowFloodLayer] = useState<boolean>(() => {
+    const qLayer = searchParams.get("layer");
+    const qFlood = searchParams.get("floodInundation");
+    if (qLayer === "flood" || qFlood === "true" || dashboardPreconfig?.showFlood) return true;
+    return false;
+  });
+  const [facilityFilter, setFacilityFilter] = useState<string>(() => {
+    const qFac = searchParams.get("facility") || dashboardPreconfig?.facility;
+    if (qFac === "Safe Shelters" || qFac === "shelter" || qFac === "shelters") return "shelter";
+    return qFac || "all";
+  });
 
   // Global Keyboard Shortcuts for GIS Operations: [, ], L, Z
   useEffect(() => {
@@ -106,6 +158,82 @@ export default function Dashboard() {
   const [simResults, setSimResults] = useState<SimulationResult | null>(null);
   const [simEpicenter, setSimEpicenter] = useState<{lat: number; lon: number} | null>(null);
   const [simLoading, setSimLoading] = useState(false);
+  const [focusedHabLocation, setFocusedHabLocation] = useState<{ lat: number; lon: number } | null>(() => {
+    if (searchParams.get("valley") === "true" || dashboardPreconfig?.focusedLocation) {
+      return dashboardPreconfig?.focusedLocation || { lat: 30.284, lon: 78.981 };
+    }
+    return null;
+  });
+  const [iapModalOpen, setIapModalOpen] = useState(false);
+  const [simSearchQuery, setSimSearchQuery] = useState("");
+  const [alertPrefillData, setAlertPrefillData] = useState<{
+    title?: string;
+    message?: string;
+    severity?: AlertSeverity;
+    habId?: number | null;
+  } | null>(null);
+
+  // Synchronize URL parameters or one-shot preconfiguration from Landing page
+  useEffect(() => {
+    const qTab = searchParams.get("tab") || dashboardPreconfig?.tab;
+    if (qTab) {
+      if (qTab === "risk-map" || qTab === "map") setTab("map");
+      else if (qTab === "safe-sites" || qTab === "safesites") setTab("safesites");
+      else if (qTab === "simulation" || qTab === "simulate") setTab("simulate");
+      else if (qTab === "plans") setTab("plans");
+      else if (qTab === "alerts") setTab("alerts");
+      else if (qTab === "analytics") setTab("analytics");
+      else if (qTab === "audit") setTab("audit");
+    }
+
+    const qHaz = searchParams.get("hazard") || searchParams.get("riskLevel") || dashboardPreconfig?.hazardFilter;
+    if (qHaz) {
+      if (qHaz === "CRITICAL" || qHaz === "RED") setHazardFilter("RED");
+      else if (qHaz === "HIGH") setHazardFilter("HIGH");
+      else if (qHaz === "MODERATE") setHazardFilter("MODERATE");
+      else if (qHaz === "SAFE") setHazardFilter("SAFE");
+    }
+
+    const qLayer = searchParams.get("layer");
+    const qFlood = searchParams.get("floodInundation");
+    if (qLayer === "flood" || qFlood === "true" || dashboardPreconfig?.showFlood) {
+      setShowFloodLayer(true);
+    }
+    const qLandslide = searchParams.get("landslide");
+    if (qLayer === "landslide" || qLandslide === "true" || dashboardPreconfig?.showLandslide) {
+      setShowLandslideLayer(true);
+    }
+
+    if (searchParams.get("valley") === "true" || dashboardPreconfig?.focusedLocation) {
+      setFocusedHabLocation(dashboardPreconfig?.focusedLocation || { lat: 30.284, lon: 78.981 });
+    }
+
+    const qFacility = searchParams.get("facility") || dashboardPreconfig?.facility;
+    if (qFacility) {
+      if (qFacility === "Safe Shelters" || qFacility === "shelter" || qFacility === "shelters") {
+        setFacilityFilter("shelter");
+      } else {
+        setFacilityFilter(qFacility);
+      }
+    }
+
+    const qTarget = searchParams.get("target");
+    if (qTarget === "true" || qTab === "simulation" || qTab === "simulate" || dashboardPreconfig?.tab === "simulation") {
+      setIsTargetToolActive(true);
+    }
+
+    if (dashboardPreconfig) {
+      setDashboardPreconfig(null);
+    }
+  }, [searchParams, dashboardPreconfig, setIsTargetToolActive, setDashboardPreconfig]);
+
+  const SIM_PRESETS = [
+    { name: "Joshimath Sector (Chamoli)", lat: 30.556, lon: 79.566, type: "LANDSLIDE", radius: 15 },
+    { name: "Kedarnath Valley (Rudraprayag)", lat: 30.735, lon: 79.066, type: "GLOF", radius: 20 },
+    { name: "Uttarkashi Fault Zone", lat: 30.726, lon: 78.435, type: "EARTHQUAKE", radius: 25 },
+    { name: "Nainital Catchment", lat: 29.391, lon: 79.454, type: "CLOUDBURST", radius: 12 },
+    { name: "Gopeshwar Slopes (Chamoli)", lat: 30.412, lon: 79.332, type: "LANDSLIDE", radius: 10 },
+  ];
 
   const qc = useQueryClient();
   const { user, username, fetchProfile } = useAuthStore();
@@ -116,7 +244,7 @@ export default function Dashboard() {
     queryKey: ["habitations", districtFilter, hazardFilter],
     queryFn: () => getHabitations({ district: districtFilter || undefined, hazard_level: hazardFilter || undefined }),
   });
-  const { data: sitesData } = useQuery({ queryKey: ["safe-sites"], queryFn: getSafeSites });
+  const { data: sitesData } = useQuery<SafeSiteGeoJSON>({ queryKey: ["safe-sites"], queryFn: () => getSafeSites() });
   const { data: plans, isLoading: plansLoading } = useQuery<RelocationPlan[]>({ queryKey: ["relocation-plans"], queryFn: getRelocationPlans });
   const { data: alerts, isLoading: alertsLoading } = useQuery<AlertItem[]>({ queryKey: ["alerts"], queryFn: getAlerts });
 
@@ -124,6 +252,10 @@ export default function Dashboard() {
     queryKey: ["geo-stats"],
     queryFn: getGeoStats,
   });
+
+  const availableDistricts = useMemo(() => {
+    return extractCleanDistricts(stats?.districts);
+  }, [stats?.districts]);
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: PlanStatus }) => updateRelocationPlan(id, { status }),
@@ -156,6 +288,23 @@ export default function Dashboard() {
 
   const displayName = user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : username || "Official";
 
+  const nearestHabitationToEpicenter = useMemo(() => {
+    if (!simEpicenter || !features.length) return null;
+    let nearest: HabitationFeature | null = null;
+    let minDist = Infinity;
+    for (const f of features) {
+      if (f.geometry?.coordinates) {
+        const [lon, lat] = f.geometry.coordinates;
+        const dist = Math.hypot(lat - simEpicenter.lat, lon - simEpicenter.lon);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = f;
+        }
+      }
+    }
+    return nearest;
+  }, [simEpicenter, features]);
+
   const handleRunSimulation = async () => {
     if (!simEpicenter) return;
     setSimLoading(true);
@@ -164,11 +313,46 @@ export default function Dashboard() {
       setSimResults(results);
     } catch (err) {
       console.error(err);
-      alert("Simulation failed");
+      alert("Simulation failed. Please verify coordinates and try again.");
     } finally {
       setSimLoading(false);
     }
   };
+
+  const handleResetSimulation = () => {
+    setSimEpicenter(null);
+    setSimResults(null);
+    setFocusedHabLocation(null);
+    setSimSearchQuery("");
+  };
+
+  const handleBroadcastAlert = () => {
+    if (!simResults) return;
+    const habCount = simResults.affected_habitations?.length || 0;
+    const popCount = simResults.total_affected_population || 0;
+    const locName = simResults.epicenter?.landmark || nearestHabitationToEpicenter?.properties.name || "Uttarakhand Sector";
+    const typeStr = simResults.epicenter?.type || simType;
+
+    setAlertPrefillData({
+      title: `URGENT SDMA FLASH ALERT: ${typeStr} IMPACT IN ${locName.toUpperCase()}`,
+      message: `Evacuation advisory triggered for ${locName} within a ${simRadius} km radius buffer. Estimated ${habCount} habitations and approx ${popCount.toLocaleString()} persons potentially exposed. Designated safe shelter corridors mobilized. Activate standard evacuation protocol immediately.`,
+      severity: "CRITICAL",
+      habId: simResults.affected_habitations[0]?.id || null,
+    });
+    setAlertModalOpen(true);
+  };
+
+  const filteredSimHabitations = useMemo(() => {
+    if (!simResults?.affected_habitations) return [];
+    if (!simSearchQuery.trim()) return simResults.affected_habitations;
+    const q = simSearchQuery.toLowerCase().trim();
+    return simResults.affected_habitations.filter(
+      (h) =>
+        h.name.toLowerCase().includes(q) ||
+        (h.district && h.district.toLowerCase().includes(q)) ||
+        (h.assigned_safe_site?.name && h.assigned_safe_site.name.toLowerCase().includes(q))
+    );
+  }, [simResults, simSearchQuery]);
 
   const filteredFeatures = useMemo(() => {
     return features.filter((f) => {
@@ -210,7 +394,7 @@ export default function Dashboard() {
           {/* Navigation Items */}
           <div className="flex-1 space-y-1 px-2 overflow-y-auto">
             {navItems.map((item) => {
-              const isActive = tab === item.id;
+              const isActive = tab === item.id || (item.id === "simulate" && tab === "simulation");
               return (
                 <button
                   key={item.id}
@@ -298,6 +482,24 @@ export default function Dashboard() {
                   onSelectHabitation={setSelectedHabId}
                   showSafeSites
                   habitationsData={habsData}
+                  focusedLocation={focusedHabLocation}
+                  initialShowLandslide={showLandslideLayer}
+                  initialShowFlood={showFloodLayer}
+                  initialFacility={facilityFilter}
+                  onActivateSimulation={(epicenter, radius) => {
+                    setTab("simulate");
+                    if (epicenter) {
+                      setSimEpicenter(epicenter);
+                    } else if (!simEpicenter) {
+                      setSimEpicenter({ lat: 30.556, lon: 79.566 });
+                    }
+                    if (radius) {
+                      setSimRadius(radius);
+                    }
+                  }}
+                  onToggleAnalytics={toggleInspector}
+                  isAnalyticsOpen={!inspectorCollapsed}
+                  settlementCount={features.length > 0 ? features.length : 13967}
                 />
                 {selectedHabId && (
                   <HabitationDetailPanel
@@ -307,21 +509,6 @@ export default function Dashboard() {
                     onOpenAlertModal={(habId) => openAlertModal(habId)}
                     isOfficial
                   />
-                )}
-
-                {/* Persistent Right Inspector Floating Pill Button (when minimized) */}
-                {inspectorCollapsed && (
-                  <button
-                    onClick={toggleInspector}
-                    className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3.5 py-2 bg-white/95 dark:bg-[#0F172Aee] hover:bg-slate-50 dark:hover:bg-[#1E293B] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-full shadow-xl backdrop-blur-md text-xs font-bold transition-all group hover:scale-105"
-                    title="Open Settlement Directory & Analytics (])"
-                    aria-label="Open Settlement Directory & Analytics (])"
-                  >
-                    <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
-                    <span>{t("settlement_analytics")} ({features.length > 0 ? features.length.toLocaleString() : "13,967"})</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">]</span>
-                    <ChevronLeft className="w-4 h-4 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white transition-transform" />
-                  </button>
                 )}
               </div>
 
@@ -385,12 +572,17 @@ export default function Dashboard() {
                       </label>
                       <select
                         value={districtFilter}
-                        onChange={(e) => setDistrictFilter(e.target.value)}
-                        className="w-full text-xs py-1 px-1.5 bg-white dark:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#475569] rounded-md text-[#0F172A] dark:text-[#F9FAFB] focus:ring-1 focus:ring-blue-500"
+                        onChange={(e) => {
+                          setDistrictFilter(e.target.value);
+                          setSelectedHabId(null);
+                        }}
+                        className="w-full text-xs py-1.5 px-2 bg-white dark:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#475569] rounded-lg text-[#0F172A] dark:text-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs cursor-pointer z-50 max-h-60 overflow-y-auto"
                       >
                         <option value="">{t("all_districts")}</option>
-                        {stats?.districts.map((d) => (
-                          <option key={d} value={d}>{t(d)}</option>
+                        {availableDistricts.map((d) => (
+                          <option key={d} value={d}>
+                            {t(d)}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -689,6 +881,28 @@ export default function Dashboard() {
                             {props.water_availability ? t("Yes") : t("No")}
                           </div>
                         </div>
+
+                        {/* Map Focus Action */}
+                        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-500 font-mono uppercase">
+                            {(props as any).facility_type || "SHELTER"}
+                          </span>
+                          <button
+                            onClick={() => {
+                              const coords = site.geometry?.coordinates;
+                              if (coords) {
+                                const lng = coords[0] > 50 ? coords[0] : coords[1];
+                                const lat = coords[0] > 50 ? coords[1] : coords[0];
+                                setFocusedHabLocation({ lat, lon: lng });
+                                setTab("map");
+                              }
+                            }}
+                            className="btn-secondary text-xs py-1 px-3 flex items-center gap-1.5 hover:bg-blue-600 hover:text-white transition"
+                          >
+                            <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                            <span>{t("Focus on Map")}</span>
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -762,7 +976,7 @@ export default function Dashboard() {
           )}
 
           {/* ━━━ TAB: SIMULATE ━━━ */}
-          {tab === "simulate" && (
+          {(tab === "simulate" || tab === "simulation") && (
             <div className="flex-1 flex overflow-hidden">
               <div className="flex-1 relative">
                 <MapView
@@ -770,8 +984,15 @@ export default function Dashboard() {
                   hazardLevel={hazardFilter}
                   showSafeSites
                   simulationMode={true}
+                  simulationEpicenter={simEpicenter}
+                  simulationRadius={simRadius}
+                  simulationType={simType}
                   simulationResults={simResults}
                   habitationsData={habsData}
+                  focusedLocation={focusedHabLocation}
+                  onEpicenterChange={(center) => {
+                    setSimEpicenter(center);
+                  }}
                   onMapClick={(lat, lon) => {
                     setSimEpicenter({ lat, lon });
                     setSimResults(null);
@@ -779,120 +1000,428 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="w-72 flex-none flex flex-col bg-white dark:bg-[#0a1220] border-l border-slate-200 dark:border-slate-800">
-                <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t("Disaster Simulation")}</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{t("Click anywhere on the map to set the disaster epicenter.")}</p>
-                </div>
-                
-                <div className="p-4 space-y-4 flex-1 overflow-y-auto">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t("Disaster Type")}</label>
-                    <select
-                      value={simType}
-                      onChange={(e) => setSimType(e.target.value)}
-                      className="select w-full text-sm"
-                    >
-                      <option value="CLOUDBURST">{t("Cloudburst")}</option>
-                      <option value="EARTHQUAKE">{t("Earthquake")}</option>
-                      <option value="FLOOD">{t("Flood")}</option>
-                      <option value="LANDSLIDE">{t("Landslide")}</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                      {t("Radius (km):")} <span className="text-slate-800 dark:text-slate-200">{simRadius} km</span>
-                    </label>
-                    <input
-                      type="range"
-                      min="1"
-                      max="50"
-                      value={simRadius}
-                      onChange={(e) => setSimRadius(Number(e.target.value))}
-                      className="w-full accent-blue-500"
-                    />
-                  </div>
-                  
-                  {simEpicenter && (
-                    <div className="text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900/50 p-2 rounded border border-slate-200 dark:border-slate-800">
-                      <div>{t("Epicenter Set:")}</div>
-                      <div className="font-mono text-slate-700 dark:text-slate-300">{t("Lat:")} {simEpicenter.lat.toFixed(4)}</div>
-                      <div className="font-mono text-slate-700 dark:text-slate-300">{t("Lon:")} {simEpicenter.lon.toFixed(4)}</div>
+              <div className="w-96 lg:w-[460px] xl:w-[500px] flex-none flex flex-col bg-white dark:bg-[#0A1220] border-l border-slate-200 dark:border-slate-800 shadow-xl z-20 overflow-hidden">
+                {/* 1. Header with Authority Badge and Reset Button */}
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-red-600/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 flex items-center justify-center font-bold">
+                      <Activity className="w-4 h-4 animate-pulse" />
                     </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+                          {t("SDMA DSS Engine")}
+                        </span>
+                      </div>
+                      <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">
+                        {t("Disaster Simulation")}
+                      </h2>
+                    </div>
+                  </div>
+                  {(simEpicenter || simResults) && (
+                    <button
+                      onClick={handleResetSimulation}
+                      className="px-2 py-1 rounded text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors flex items-center gap-1"
+                      title={t("Reset Simulation")}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>{t("Reset")}</span>
+                    </button>
                   )}
+                </div>
 
+                <div className="p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
+                  {/* 2. Epicenter Selection Status & Presets */}
+                  <div className="rounded-xl p-3 border transition-colors bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Crosshair className="w-3.5 h-3.5 text-red-500" />
+                        {t("Incident Epicenter Coordinates")}
+                      </span>
+                      {simEpicenter ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                          {t("Live Pin Active")}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                          {t("Pending Map Click")}
+                        </span>
+                      )}
+                    </div>
+
+                    {simEpicenter ? (
+                      <div className="space-y-1 text-xs">
+                        <div className="p-2 rounded bg-white dark:bg-[#070D18] border border-slate-200 dark:border-slate-800 font-mono text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                          <span>{t("Lat:")} <strong className="text-red-600 dark:text-red-400">{simEpicenter.lat.toFixed(4)}° N</strong></span>
+                          <span>{t("Lon:")} <strong className="text-red-600 dark:text-red-400">{simEpicenter.lon.toFixed(4)}° E</strong></span>
+                        </div>
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-1 pt-1">
+                          <Target className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                          <span className="truncate">
+                            {simResults?.epicenter?.landmark ||
+                              (nearestHabitationToEpicenter
+                                ? `${nearestHabitationToEpicenter.properties.name} Sector • ${nearestHabitationToEpicenter.properties.district}`
+                                : t("Active Disaster Focal Point"))}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {t("Click anywhere on the map to drop an epicenter pin or select a high-vulnerability scenario preset below:")}
+                      </p>
+                    )}
+
+                    {/* Quick Presets */}
+                    <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/80">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                        {t("High-Risk Presets:")}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {SIM_PRESETS.map((preset) => (
+                          <button
+                            key={preset.name}
+                            onClick={() => {
+                              setSimEpicenter({ lat: preset.lat, lon: preset.lon });
+                              setSimType(preset.type);
+                              setSimRadius(preset.radius);
+                              setSimResults(null);
+                            }}
+                            className={`text-[11px] px-2 py-1 rounded-md border font-medium transition-all ${
+                              simEpicenter?.lat === preset.lat && simEpicenter?.lon === preset.lon
+                                ? "bg-red-600 text-white border-red-600 shadow-sm"
+                                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400"
+                            }`}
+                          >
+                            {preset.name.split(" ")[0]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Parameter Controls: Disaster Type & Impact Buffer Radius */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {t("Disaster Type")}
+                      </label>
+                      <select
+                        value={simType}
+                        onChange={(e) => setSimType(e.target.value)}
+                        className="select w-full text-xs font-semibold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="CLOUDBURST">🌧️ {t("Cloudburst")} ({t("Flash Flood")})</option>
+                        <option value="LANDSLIDE">⛰️ {t("Landslide")} ({t("Slope Failure")})</option>
+                        <option value="GLOF">❄️ {t("Glacial Lake Outburst Flood (GLOF)")}</option>
+                        <option value="EARTHQUAKE">⚡ {t("Earthquake")} ({t("Seismic Fault")})</option>
+                        <option value="FLOOD">🌊 {t("Flood")} ({t("River Inundation")})</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {t("Impact Buffer Radius")}
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={simRadius}
+                            onChange={(e) => {
+                              const v = Math.max(1, Math.min(50, Number(e.target.value) || 1));
+                              setSimRadius(v);
+                            }}
+                            className="w-14 text-center text-xs font-bold font-mono px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                          />
+                          <span className="text-xs font-bold text-slate-500">km</span>
+                        </div>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="50"
+                        value={simRadius}
+                        onChange={(e) => setSimRadius(Number(e.target.value))}
+                        className="w-full accent-red-600 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+                        <span>1 km (Localized)</span>
+                        <span>25 km (Regional)</span>
+                        <span>50 km (State Max)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Primary Run Button */}
                   <button
                     onClick={handleRunSimulation}
                     disabled={!simEpicenter || simLoading}
-                    className={`w-full py-2 rounded text-sm font-medium transition-colors ${
+                    className={`w-full py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-md flex items-center justify-center gap-2 ${
                       !simEpicenter || simLoading
-                        ? "bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed"
-                        : "bg-red-600 text-slate-900 dark:text-white hover:bg-red-700"
+                        ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-transparent shadow-none"
+                        : "bg-red-600 hover:bg-red-700 text-white border border-red-700 shadow-red-500/20 active:scale-[0.99]"
                     }`}
                   >
-                    {simLoading ? t("Simulating...") : t("Run Simulation")}
+                    {simLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>{t("Simulating Blast Impact...")}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Flame className="w-4 h-4" />
+                        <span>{t("Run Scenario Simulation")}</span>
+                      </>
+                    )}
                   </button>
 
+                  {/* 5. Incident Assessment Dossier (Results) */}
                   {simResults && (() => {
-                    const affectedIds = new Set(simResults.affected_habitations.map(h => h.id));
-                    const highRiskAffected = features.filter(f => 
-                      affectedIds.has(f.id) && 
-                      ["RED", "HIGH"].includes(f.properties.hazard_level)
-                    ).length;
+                    const affectedHabitations = simResults.affected_habitations || [];
+                    const summary = simResults.summary || {
+                      total_affected_habitations: affectedHabitations.length,
+                      total_affected_population: simResults.total_affected_population,
+                      critical_red_count: 0,
+                      high_risk_count: 0,
+                      zone_1_count: 0,
+                      zone_2_count: 0,
+                      zone_3_count: 0,
+                      active_safe_sites_count: simResults.reachable_shelters?.length || 0,
+                      estimated_evacuation_mins: 90,
+                    };
 
-                    const utilizedShelters = simResults.affected_habitations.reduce((acc, hab) => {
-                      if (hab.assigned_safe_site) {
-                        if (!acc[hab.assigned_safe_site.id]) {
-                          acc[hab.assigned_safe_site.id] = { name: hab.assigned_safe_site.name, population: 0 };
-                        }
-                        acc[hab.assigned_safe_site.id].population += hab.population;
-                      }
-                      return acc;
-                    }, {} as Record<number, { name: string, population: number }>);
-
-                    const impactText = simType === "CLOUDBURST" ? "High risk of flash floods and landslides in valleys. Roads likely washed out." :
-                      simType === "EARTHQUAKE" ? "Severe structural damage expected. Infrastructure disruption." :
-                      simType === "FLOOD" ? "Widespread inundation expected. Waterborne diseases risk." :
-                      simType === "LANDSLIDE" ? "Road network disruption. High risk of secondary slope failures." : "General widespread damage.";
+                    const impactText =
+                      simType === "CLOUDBURST"
+                        ? "High velocity flash floods and debris flow in valley floors. Roads, bridges and culverts compromised."
+                        : simType === "EARTHQUAKE"
+                        ? "Severe structural failure in unreinforced masonry buildings. High risk of seismic rockfalls along highways."
+                        : simType === "GLOF"
+                        ? "Moraine breach surge wave. Critical downstream flood surge within 45 to 90 minutes."
+                        : simType === "LANDSLIDE"
+                        ? "Mass slope destabilization, slope failure blocking river channels. Immediate evacuation of lower tier recommended."
+                        : "Widespread river overspill, low-lying habitation flooding, clean water network cut-off.";
 
                     return (
-                      <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
-                        <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-3">{t("Simulation Results")}</h3>
-                        
-                        <div className="mb-4 bg-red-950/30 border border-red-900/50 p-2.5 rounded">
-                          <p className="text-[11px] font-semibold text-red-400 mb-1">{t("Expected Impact")}</p>
-                          <p className="text-[11px] text-red-200/80 leading-relaxed">{t(impactText)}</p>
+                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                        {/* Dossier Header */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] font-bold text-red-600 dark:text-red-400 tracking-wider uppercase">
+                              {t("Incident Assessment Dossier")}
+                            </span>
+                            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                              {simResults.epicenter?.landmark || "Sector Evaluation"}
+                            </h3>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                            R = {simRadius} km
+                          </span>
                         </div>
 
-                        <div className="space-y-2 mb-4">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-500 dark:text-slate-500">{t("Affected Population:")}</span>
-                            <span className="font-mono text-red-400 font-bold">{simResults.total_affected_population.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-500 dark:text-slate-500">{t("Affected Settlements:")}</span>
-                            <span className="font-mono text-slate-800 dark:text-slate-200">{simResults.affected_habitations.length}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-500 dark:text-slate-500">{t("High/Red Risk Zones:")}</span>
-                            <span className="font-mono text-orange-400 font-bold">{highRiskAffected}</span>
-                          </div>
+                        {/* Expected Hazard Impact Note */}
+                        <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60">
+                          <p className="text-[11px] font-bold text-red-700 dark:text-red-400 mb-0.5">
+                            {t("Expected Impact")}:
+                          </p>
+                          <p className="text-[11px] text-red-900/80 dark:text-red-200/80 leading-relaxed">
+                            {impactText}
+                          </p>
                         </div>
 
-                        {Object.keys(utilizedShelters).length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800/60">
-                            <h4 className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">{t("Utilized Safe Sites")}</h4>
-                            <div className="space-y-1.5">
-                              {Object.values(utilizedShelters).map(site => (
-                                <div key={site.name} className="flex justify-between items-center text-[11px]">
-                                  <span className="text-emerald-400 truncate pr-2 flex-1">{site.name}</span>
-                                  <span className="font-mono text-slate-700 dark:text-slate-300 flex-shrink-0">+{site.population.toLocaleString()} pax</span>
-                                </div>
-                              ))}
+                        {/* Top KPI Alert Metrics Grid (4 cards) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block">
+                              {t("Affected Settlements")}
+                            </span>
+                            <div className="flex items-baseline gap-1.5 mt-1">
+                              <span className="text-xl font-bold font-mono text-slate-900 dark:text-white">
+                                {summary.total_affected_habitations}
+                              </span>
+                              {summary.critical_red_count > 0 && (
+                                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950 px-1 py-0.2 rounded">
+                                  {summary.critical_red_count} Red
+                                </span>
+                              )}
                             </div>
                           </div>
-                        )}
+
+                          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block">
+                              {t("Population at Risk")}
+                            </span>
+                            <div className="text-xl font-bold font-mono text-red-600 dark:text-red-400 mt-1">
+                              {summary.total_affected_population.toLocaleString()}
+                            </div>
+                          </div>
+
+                          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block">
+                              {t("Safe Shelters")}
+                            </span>
+                            <div className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                              {summary.active_safe_sites_count}
+                            </div>
+                          </div>
+
+                          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block">
+                              {t("Est. Evac Window")}
+                            </span>
+                            <div className="text-xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">
+                              {summary.estimated_evacuation_mins} min
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 3-Tier Inundation Zones Matrix */}
+                        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-2">
+                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                            {t("Three-Tier Impact Zoning")}
+                          </span>
+                          <div className="grid grid-cols-3 gap-1.5 text-center">
+                            <div className="p-1.5 rounded bg-red-100/80 dark:bg-red-950/70 border border-red-300 dark:border-red-900">
+                              <span className="text-[9px] font-bold text-red-800 dark:text-red-300 block uppercase">
+                                Zone 1 (0-30%)
+                              </span>
+                              <span className="text-sm font-bold font-mono text-red-700 dark:text-red-200">
+                                {summary.zone_1_count}
+                              </span>
+                              <span className="text-[8px] text-red-600 dark:text-red-400 block">{t("Direct Hit")}</span>
+                            </div>
+                            <div className="p-1.5 rounded bg-amber-100/80 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-900">
+                              <span className="text-[9px] font-bold text-amber-800 dark:text-amber-300 block uppercase">
+                                Zone 2 (30-70%)
+                              </span>
+                              <span className="text-sm font-bold font-mono text-amber-700 dark:text-amber-200">
+                                {summary.zone_2_count}
+                              </span>
+                              <span className="text-[8px] text-amber-600 dark:text-amber-400 block">{t("High Alert")}</span>
+                            </div>
+                            <div className="p-1.5 rounded bg-blue-100/80 dark:bg-blue-950/70 border border-blue-300 dark:border-blue-900">
+                              <span className="text-[9px] font-bold text-blue-800 dark:text-blue-300 block uppercase">
+                                Zone 3 (70-100%)
+                              </span>
+                              <span className="text-sm font-bold font-mono text-blue-700 dark:text-blue-200">
+                                {summary.zone_3_count}
+                              </span>
+                              <span className="text-[8px] text-blue-600 dark:text-blue-400 block">{t("Advisory")}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actionable Incident Command Buttons */}
+                        <div className="space-y-2 pt-1">
+                          <button
+                            onClick={() => setIapModalOpen(true)}
+                            className="w-full py-2 px-3 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 border border-blue-700 shadow-sm flex items-center justify-center gap-2 transition-all"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                            <span>{t("Generate SDMA Incident Action Plan (PDF)")}</span>
+                          </button>
+
+                          <button
+                            onClick={handleBroadcastAlert}
+                            className="w-full py-2 px-3 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 border border-amber-700 shadow-sm flex items-center justify-center gap-2 transition-all"
+                          >
+                            <Radio className="w-3.5 h-3.5" />
+                            <span>{t("Broadcast Emergency Alert (CAP / SMS)")}</span>
+                          </button>
+                        </div>
+
+                        {/* Interactive Habitation Roster Table */}
+                        <div className="pt-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                              {t("Affected Settlements Roster")} ({filteredSimHabitations.length})
+                            </span>
+                          </div>
+
+                          <div className="relative mb-2">
+                            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                            <input
+                              type="text"
+                              value={simSearchQuery}
+                              onChange={(e) => setSimSearchQuery(e.target.value)}
+                              placeholder={t("Filter affected habitations or shelters...")}
+                              className="w-full pl-8 pr-3 py-1.5 rounded-md text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                            />
+                            {simSearchQuery && (
+                              <button
+                                onClick={() => setSimSearchQuery("")}
+                                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 border rounded-lg border-slate-200 dark:border-slate-800 p-1.5 bg-slate-50/50 dark:bg-slate-900/30">
+                            {filteredSimHabitations.length === 0 ? (
+                              <p className="text-xs text-center py-4 text-slate-500">
+                                {t("No matching settlements")}
+                              </p>
+                            ) : (
+                              filteredSimHabitations.slice(0, 100).map((hab) => (
+                                <div
+                                  key={hab.id}
+                                  className="p-2 rounded bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 hover:border-blue-400 text-xs flex items-center justify-between gap-2 transition-colors"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-slate-900 dark:text-white truncate">
+                                        {hab.name}
+                                      </span>
+                                      <span
+                                        className={`text-[9px] font-bold px-1 py-0.2 rounded ${
+                                          hab.impact_zone === "ZONE_1"
+                                            ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-300"
+                                            : hab.impact_zone === "ZONE_2"
+                                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-300"
+                                            : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-300"
+                                        }`}
+                                      >
+                                        {hab.impact_zone || "ZONE"}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
+                                      <span>{hab.district}</span>
+                                      <span>•</span>
+                                      <span className="font-mono text-red-600 dark:text-red-400 font-semibold">
+                                        {hab.distance_from_epicenter_km ?? hab.distance_km} km
+                                      </span>
+                                      <span>•</span>
+                                      <span>{hab.population?.toLocaleString()} pax</span>
+                                    </div>
+                                    {hab.assigned_safe_site && (
+                                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 truncate mt-0.5 flex items-center gap-1">
+                                        <span>🛡️ {hab.assigned_safe_site.name}</span>
+                                        {hab.assigned_safe_site.distance_km && (
+                                          <span className="font-mono">({hab.assigned_safe_site.distance_km} km)</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    onClick={() => {
+                                      if (hab.lat && hab.lon) {
+                                        setFocusedHabLocation({ lat: hab.lat, lon: hab.lon });
+                                      }
+                                    }}
+                                    className="p-1.5 rounded bg-slate-100 dark:bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-600 dark:text-slate-300 transition-colors flex-shrink-0"
+                                    title={t("Focus on Map")}
+                                  >
+                                    <Crosshair className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
                       </div>
                     );
                   })()}
@@ -906,22 +1435,22 @@ export default function Dashboard() {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="max-w-6xl mx-auto">
                 <div className="mb-6">
-                  <h1 className="text-base font-semibold text-slate-900 dark:text-slate-100">Operational Overview</h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">District-level summary of hazard exposure and response capacity</p>
+                  <h1 className="text-base font-semibold text-slate-900 dark:text-slate-100">{t("Operational Overview")}</h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">{t("District-level summary of hazard exposure and response capacity")}</p>
                 </div>
 
                 {/* KPI grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <KPI label="Total settlements" value={stats?.total_habitations.toString() ?? features.length.toString()} sub="across all districts" />
-                  <KPI label="Population at risk" value={stats ? formatPopulation(stats.total_population_at_risk) : formatPopulation(riskPop)} sub="in red & high risk zones" highlight="text-red-400" />
-                  <KPI label="Shelter capacity" value={stats ? formatPopulation(stats.total_shelter_capacity) : formatPopulation(totalCapacity)} sub="verified places available" highlight="text-emerald-400" />
-                  <KPI label="Relocation plans" value={(plans?.length || 0).toString()} sub={`${plans?.filter((p) => p.status === "COMPLETED").length || 0} completed`} />
+                  <KPI label={t("Total settlements")} value={stats?.total_habitations.toString() ?? features.length.toString()} sub={t("across all districts")} />
+                  <KPI label={t("Population at risk")} value={stats ? formatPopulation(stats.total_population_at_risk) : formatPopulation(riskPop)} sub={t("in red & high risk zones")} highlight="text-red-400" />
+                  <KPI label={t("Shelter capacity")} value={stats ? formatPopulation(stats.total_shelter_capacity) : formatPopulation(totalCapacity)} sub={t("verified places available")} highlight="text-emerald-400" />
+                  <KPI label={t("Relocation plans")} value={(plans?.length || 0).toString()} sub={`${plans?.filter((p) => p.status === "COMPLETED").length || 0} ${t("completed")}`} />
                 </div>
 
                 {/* Hazard distribution */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                   <div className="card p-4">
-                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-4">Settlement distribution by risk</h3>
+                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-4">{t("Settlement distribution by risk")}</h3>
                     <div className="space-y-3">
                       {(["RED", "HIGH", "MODERATE", "SAFE"] as const).map((level) => {
                         const count = features.filter((f) => f.properties.hazard_level === level).length;
@@ -947,9 +1476,9 @@ export default function Dashboard() {
 
                   {/* Plans by status */}
                   <div className="card p-4">
-                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-4">Relocation plan pipeline</h3>
+                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-4">{t("Relocation plan pipeline")}</h3>
                     {(!plans || plans.length === 0) ? (
-                      <div className="text-xs text-slate-600 py-6 text-center">No plans created yet</div>
+                      <div className="text-xs text-slate-600 py-6 text-center">{t("No plans created yet")}</div>
                     ) : (
                       <div className="space-y-3">
                         {(["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED"] as const).map((status) => {
@@ -958,8 +1487,8 @@ export default function Dashboard() {
                           return (
                             <div key={status} className="flex items-center gap-3">
                               <span className={statusBadgeClass(status)}>{status.replace("_", " ")}</span>
-                              <span className="text-xs text-slate-600 flex-1">{count} plan{count !== 1 ? "s" : ""}</span>
-                              <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">{pop.toLocaleString()} people</span>
+                              <span className="text-xs text-slate-600 flex-1">{count} {t("plans")}</span>
+                              <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">{pop.toLocaleString()} {t("people")}</span>
                             </div>
                           );
                         })}
@@ -971,8 +1500,8 @@ export default function Dashboard() {
                 {/* System info */}
                 <div className="card p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Developer database console</p>
-                    <p className="text-xs text-slate-600 mt-0.5">Django admin panel for direct schema inspection — separate from this operator portal.</p>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("Developer database console")}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">{t("Django admin panel for direct schema inspection — separate from this operator portal.")}</p>
                   </div>
                   <a
                     href="http://localhost:8000/system-console/"
@@ -980,7 +1509,7 @@ export default function Dashboard() {
                     rel="noopener noreferrer"
                     className="btn-outline text-xs flex-shrink-0"
                   >
-                    Open /system-console/ ↗
+                    {t("Open /system-console/ ↗")}
                   </a>
                 </div>
               </div>
@@ -1001,14 +1530,14 @@ export default function Dashboard() {
                       <span>{t("nav_audit_trail")}</span>
                     </h1>
                     <p className="text-xs text-slate-500 mt-1">
-                      Official immutable audit ledger generated in compliance with the Disaster Management Act, 2005 & GIGW 3.0 Standards.
+                      {t("Official immutable audit ledger generated in compliance with the Disaster Management Act, 2005 & GIGW 3.0 Standards.")}
                     </p>
                   </div>
                   <button
-                    onClick={() => alert("Official Signed Audit Trail Exported (SHA-256 Verified).")}
+                    onClick={() => alert(t("Official Signed Audit Trail Exported (SHA-256 Verified)."))}
                     className="btn-outline text-xs flex items-center gap-1.5"
                   >
-                    <span>Download Audit Ledger (.CSV)</span>
+                    <span>{t("Download Audit Ledger (.CSV)")}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1016,24 +1545,24 @@ export default function Dashboard() {
                 {/* Audit Metric Badges */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="card p-3.5 bg-white dark:bg-[#131e36]">
-                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Logged System Events</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{t("Logged System Events")}</div>
                     <div className="text-xl font-bold font-mono text-[#0B2545] dark:text-white mt-1">2,841</div>
-                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">100% Cryptographically Verified</div>
+                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">{t("100% Cryptographically Verified")}</div>
                   </div>
                   <div className="card p-3.5 bg-white dark:bg-[#131e36]">
-                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Integrity Digest</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{t("Integrity Digest")}</div>
                     <div className="text-xs font-bold font-mono text-blue-600 dark:text-blue-400 mt-2 truncate">SHA256: 4f89b...e29c</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Tamper-Evident Ledger</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{t("Tamper-Evident Ledger")}</div>
                   </div>
                   <div className="card p-3.5 bg-white dark:bg-[#131e36]">
-                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Security Discrepancies</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{t("Security Discrepancies")}</div>
                     <div className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">0</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Zero Breaches Detected</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{t("Zero Breaches Detected")}</div>
                   </div>
                   <div className="card p-3.5 bg-white dark:bg-[#131e36]">
-                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Operator Identity</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{t("Operator Identity")}</div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white mt-2 truncate">{displayName}</div>
-                    <div className="text-[10px] text-amber-600 font-semibold mt-0.5">Uttarakhand SDMA Officer</div>
+                    <div className="text-[10px] text-amber-600 font-semibold mt-0.5">{t("Uttarakhand SDMA Officer")}</div>
                   </div>
                 </div>
 
@@ -1041,21 +1570,21 @@ export default function Dashboard() {
                 <div className="card overflow-hidden bg-white dark:bg-[#131e36] border border-slate-200 dark:border-slate-800 shadow-sm">
                   <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                      Real-Time Operational Audit Trail
+                      {t("Real-Time Operational Audit Trail")}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500">Live Sync: Active</span>
+                    <span className="text-[10px] font-mono text-slate-500">{t("Live Sync: Active")}</span>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/30">
-                          <th className="px-4 py-3">Timestamp (IST)</th>
-                          <th className="px-4 py-3">Event Code</th>
-                          <th className="px-4 py-3">Operator / Principal</th>
-                          <th className="px-4 py-3">Target Entity</th>
-                          <th className="px-4 py-3">Client IP & Origin</th>
-                          <th className="px-4 py-3 text-right">Compliance Status</th>
+                          <th className="px-4 py-3">{t("Timestamp (IST)")}</th>
+                          <th className="px-4 py-3">{t("Event Code")}</th>
+                          <th className="px-4 py-3">{t("Operator / Principal")}</th>
+                          <th className="px-4 py-3">{t("Target Entity")}</th>
+                          <th className="px-4 py-3">{t("Client IP & Origin")}</th>
+                          <th className="px-4 py-3 text-right">{t("Compliance Status")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
@@ -1143,9 +1672,22 @@ export default function Dashboard() {
       />
       <CreateAlertModal
         isOpen={alertModalOpen}
-        onClose={() => setAlertModalOpen(false)}
-        preselectedHabitationId={prefillHab}
+        onClose={() => {
+          setAlertModalOpen(false);
+          setAlertPrefillData(null);
+        }}
+        preselectedHabitationId={alertPrefillData?.habId ?? prefillHab}
+        initialTitle={alertPrefillData?.title}
+        initialMessage={alertPrefillData?.message}
+        initialSeverity={alertPrefillData?.severity}
       />
+      {simResults && (
+        <IncidentActionPlanModal
+          isOpen={iapModalOpen}
+          onClose={() => setIapModalOpen(false)}
+          results={simResults}
+        />
+      )}
     </div>
   );
 }

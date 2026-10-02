@@ -8,27 +8,35 @@ interface CreateAlertModalProps {
   isOpen: boolean;
   onClose: () => void;
   preselectedHabitationId?: number | null;
+  initialTitle?: string;
+  initialMessage?: string;
+  initialSeverity?: AlertSeverity;
 }
 
 export default function CreateAlertModal({
   isOpen,
   onClose,
   preselectedHabitationId,
+  initialTitle,
+  initialMessage,
+  initialSeverity,
 }: CreateAlertModalProps) {
   const { t } = useTranslation();
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
-  const [severity, setSeverity] = useState<AlertSeverity>("WARNING");
+  const [title, setTitle] = useState(initialTitle || "");
+  const [message, setMessage] = useState(initialMessage || "");
+  const [severity, setSeverity] = useState<AlertSeverity>(initialSeverity || "WARNING");
   const [habId, setHabId] = useState<string>(preselectedHabitationId?.toString() ?? "");
 
   const qc = useQueryClient();
 
   useEffect(() => {
     if (isOpen) {
-      setTitle(""); setMessage(""); setSeverity("WARNING");
+      setTitle(initialTitle || "");
+      setMessage(initialMessage || "");
+      setSeverity(initialSeverity || "WARNING");
       setHabId(preselectedHabitationId?.toString() ?? "");
     }
-  }, [isOpen, preselectedHabitationId]);
+  }, [isOpen, preselectedHabitationId, initialTitle, initialMessage, initialSeverity]);
 
   const create = useMutation({
     mutationFn: () =>
@@ -48,9 +56,9 @@ export default function CreateAlertModal({
   if (!isOpen) return null;
 
   const severityStyles: Record<string, string> = {
-    CRITICAL: "border-red-700 bg-red-950/60 text-red-300",
-    WARNING: "border-orange-700 bg-orange-950/60 text-orange-300",
-    INFO: "border-blue-700 bg-blue-950/60 text-blue-300",
+    CRITICAL: "border-red-300 dark:border-red-700 bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300",
+    WARNING: "border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300",
+    INFO: "border-blue-300 dark:border-blue-700 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300",
   };
 
   return (
@@ -119,13 +127,13 @@ export default function CreateAlertModal({
               <svg className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
-              Linked to settlement #{habId}
+              {t("Linked to settlement")} #{habId}
             </div>
           )}
 
           {create.isError && (
-            <div className="p-3 bg-red-950/40 border border-red-900/50 rounded text-xs text-red-400">
-              Failed to broadcast alert. Please try again.
+            <div className="p-3 bg-red-100 dark:bg-red-950/40 border border-red-300 dark:border-red-900/50 rounded text-xs text-red-700 dark:text-red-400">
+              {t("Failed to broadcast alert. Please try again.")}
             </div>
           )}
         </div>

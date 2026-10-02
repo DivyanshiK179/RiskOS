@@ -4,6 +4,7 @@ import type { HabitationGeoJSON, HabitationDetail, SafeSiteMatch } from "../type
 export interface HabitationFilterParams {
   district?: string;
   hazard_level?: string;
+  search?: string;
   in_bbox?: string;
 }
 

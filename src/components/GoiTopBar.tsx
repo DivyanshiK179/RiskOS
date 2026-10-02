@@ -1,10 +1,23 @@
+import { useRef } from "react";
 import { Sun, Moon, Globe, Eye } from "lucide-react";
 import { useUIStore } from "../store/uiStore";
 import { useTranslation } from "../i18n/translations";
+import ScreenReaderModal from "./ScreenReaderModal";
+import { announceAria } from "../lib/ariaAnnounce";
 
 export default function GoiTopBar() {
-  const { theme, toggleTheme, lang, setLang, fontSizeLevel, setFontSizeLevel } = useUIStore();
+  const { theme, toggleTheme, lang, setLang, fontSizeLevel, setFontSizeLevel, isScreenReaderModalOpen, setScreenReaderModalOpen } = useUIStore();
   const { t } = useTranslation();
+  const screenReaderBtnRef = useRef<HTMLButtonElement>(null);
+
+  const handleOpenScreenReader = () => {
+    setScreenReaderModalOpen(true);
+    announceAria(
+      lang === "hi"
+        ? "स्क्रीन रीडर एक्सेस संवाद खोला गया। बंद करने के लिए एस्केप दबाएं, या अनुशंसित सहायक सॉफ्टवेयर और नेविगेशन शॉर्टकट देखने के लिए टैब दबाएं।"
+        : "Screen Reader Access dialogue opened. Press Escape to close, or Tab to view recommended assistive software and navigation shortcuts."
+    );
+  };
 
   return (
     <div className="w-full flex flex-col flex-none z-50">
@@ -24,11 +37,11 @@ export default function GoiTopBar() {
           </span>
           <span className="text-indigo-400 dark:text-slate-600 hidden sm:inline">•</span>
           <span className="text-slate-200 font-medium hidden md:inline">
-            Ministry of Electronics & IT (MeitY)
+            {t("Ministry of Electronics & IT (MeitY)")}
           </span>
           <span className="text-indigo-400 dark:text-slate-600 hidden lg:inline">•</span>
           <span className="text-emerald-300 text-[10px] uppercase font-bold tracking-wider hidden lg:inline">
-            NDMA / SDMA Uttarakhand
+            {t("NDMA / SDMA Uttarakhand")}
           </span>
         </div>
 
@@ -44,10 +57,19 @@ export default function GoiTopBar() {
           </a>
 
           {/* Screen Reader Access */}
-          <div className="hidden sm:flex items-center gap-1 text-slate-300 cursor-default" title={t("screen_reader")}>
+          <button
+            ref={screenReaderBtnRef}
+            type="button"
+            onClick={handleOpenScreenReader}
+            aria-haspopup="dialog"
+            aria-expanded={isScreenReaderModalOpen}
+            className="hidden sm:flex items-center gap-1 text-slate-300 hover:text-white transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-400 rounded"
+            title={t("screen_reader")}
+            aria-label={t("screen_reader")}
+          >
             <Eye className="w-3.5 h-3.5 text-amber-300" />
             <span className="text-[10px] hidden xl:inline">{t("screen_reader")}</span>
-          </div>
+          </button>
 
           <div className="h-3 w-[1px] bg-indigo-800 dark:bg-slate-700 hidden sm:block" />
 
@@ -134,6 +156,12 @@ export default function GoiTopBar() {
           </div>
         </div>
       </div>
+
+      <ScreenReaderModal
+        isOpen={isScreenReaderModalOpen}
+        onClose={() => setScreenReaderModalOpen(false)}
+        triggerRef={screenReaderBtnRef}
+      />
     </div>
   );
 }

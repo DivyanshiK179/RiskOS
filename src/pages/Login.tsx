@@ -15,7 +15,7 @@ export default function Login() {
 
   const authLogin = useAuthStore((s) => s.login);
   const navigate = useNavigate();
-  const { lang } = useTranslation();
+  const { t, lang } = useTranslation();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,13 +68,13 @@ export default function Login() {
 
             <div className="mt-8 space-y-4 max-w-lg">
               <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                GOVERNMENT OF INDIA • STATUTORY SDMA PORTAL
+                {t("GOVERNMENT OF INDIA • STATUTORY SDMA PORTAL")}
               </span>
               <h1 className="text-3xl font-extrabold leading-tight">
-                National Geospatial Decision Support System for Disaster Risk & Relocation
+                {t("National Geospatial Decision Support System for Disaster Risk & Relocation")}
               </h1>
               <p className="text-sm text-slate-300 leading-relaxed">
-                Authoritative platform for state disaster management authorities to identify vulnerable mountain habitations, simulate multi-hazard impacts, and execute verified population relocations.
+                {t("Authoritative platform for state disaster management authorities to identify vulnerable mountain habitations, simulate multi-hazard impacts, and execute verified population relocations.")}
               </p>
             </div>
           </div>
@@ -82,10 +82,10 @@ export default function Login() {
           {/* Mission Features */}
           <div className="space-y-3.5 my-8">
             {[
-              "Real-time PostGIS GeoJSON acceleration for 13,967+ habitations",
-              "Multi-hazard vulnerability scoring (Seismic Zone V, Flash Flood, Landslide)",
-              "Automated capacity-matching to verified safe relocation shelters",
-              "Audited chain-of-custody relocation planning under NDMA guidelines",
+              t("Real-time PostGIS GeoJSON acceleration for 13,967+ habitations"),
+              t("Multi-hazard vulnerability scoring (Seismic Zone V, Flash Flood, Landslide)"),
+              t("Automated capacity-matching to verified safe relocation shelters"),
+              t("Audited chain-of-custody relocation planning under NDMA guidelines"),
             ].map((item, idx) => (
               <div key={idx} className="flex items-center gap-3 text-xs text-slate-200">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
@@ -95,8 +95,8 @@ export default function Login() {
           </div>
 
           <div className="text-[11px] text-slate-400 border-t border-blue-900/80 pt-4 flex items-center justify-between">
-            <span>Security Standard: GIGW 3.0 Compliant</span>
-            <span>Server: NIC GovNet Ready</span>
+            <span>{t("Security Standard: GIGW 3.0 Compliant")}</span>
+            <span>{t("Server: NIC GovNet Ready")}</span>
           </div>
         </div>
 
@@ -169,11 +169,11 @@ export default function Login() {
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Verifying Credentials...</span>
+                    <span>{t("Verifying Credentials...")}</span>
                   </>
                 ) : (
                   <>
-                    <span>{lang === "hi" ? "कमांड सेंटर में प्रवेश करें" : "Sign In to Command Center"}</span>
+                    <span>{t("Sign In to Command Center")}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -183,7 +183,7 @@ export default function Login() {
             {/* Quick Fill Credentials Box */}
             <div className="p-3.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
               <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                Pre-configured Official Accounts:
+                {t("Pre-configured Official Accounts:")}
               </span>
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <button
@@ -194,7 +194,7 @@ export default function Login() {
                   }}
                   className="p-2 rounded bg-white dark:bg-[#131e36] border border-slate-300 dark:border-slate-700 text-left hover:border-blue-500 transition"
                 >
-                  <span className="font-bold text-blue-700 dark:text-blue-400 block truncate">State Officer</span>
+                  <span className="font-bold text-blue-700 dark:text-blue-400 block truncate">{t("State Officer")}</span>
                   <span className="text-[10px] font-mono text-slate-500">official / RiskSetu@2026</span>
                 </button>
                 <button
@@ -205,7 +205,7 @@ export default function Login() {
                   }}
                   className="p-2 rounded bg-white dark:bg-[#131e36] border border-slate-300 dark:border-slate-700 text-left hover:border-blue-500 transition"
                 >
-                  <span className="font-bold text-amber-700 dark:text-amber-400 block truncate">Super Admin</span>
+                  <span className="font-bold text-amber-700 dark:text-amber-400 block truncate">{t("Super Admin")}</span>
                   <span className="text-[10px] font-mono text-slate-500">superadmin / Admin@RS2026</span>
                 </button>
               </div>

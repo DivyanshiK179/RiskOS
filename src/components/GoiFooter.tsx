@@ -1,7 +1,17 @@
+import React, { useState, useRef } from "react";
 import { useTranslation } from "../i18n/translations";
+import PolicyModal, { type PolicyKey } from "./PolicyModal";
 
 export default function GoiFooter() {
   const { t } = useTranslation();
+  const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  const openPolicy = (key: PolicyKey, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    triggerRef.current = e.currentTarget;
+    setActivePolicy(key);
+  };
 
   return (
     <footer className="w-full flex-none bg-[#0B2545] text-slate-300 text-xs border-t border-blue-900 mt-auto select-none">
@@ -31,23 +41,59 @@ export default function GoiFooter() {
 
           <div className="text-[11px] text-slate-300 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>National Disaster Management Cloud Infrastructure</span>
+            <span>{t("National Disaster Management Cloud Infrastructure")}</span>
           </div>
         </div>
 
         {/* Standard GIGW Policy Links */}
         <div className="py-3 flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 text-[11px] text-slate-300">
-          <a href="#terms" className="hover:text-amber-300 transition-colors">{t("footer_terms")}</a>
+          <button
+            type="button"
+            onClick={(e) => openPolicy("terms", e)}
+            className="hover:text-amber-300 transition-colors cursor-pointer bg-transparent border-0 p-0 text-inherit font-inherit"
+          >
+            {t("footer_terms")}
+          </button>
           <span className="text-blue-800 hidden sm:inline">|</span>
-          <a href="#privacy" className="hover:text-amber-300 transition-colors">{t("footer_privacy")}</a>
+          <button
+            type="button"
+            onClick={(e) => openPolicy("privacy", e)}
+            className="hover:text-amber-300 transition-colors cursor-pointer bg-transparent border-0 p-0 text-inherit font-inherit"
+          >
+            {t("footer_privacy")}
+          </button>
           <span className="text-blue-800 hidden sm:inline">|</span>
-          <a href="#hyperlink" className="hover:text-amber-300 transition-colors">{t("footer_hyperlink")}</a>
+          <button
+            type="button"
+            onClick={(e) => openPolicy("hyperlink", e)}
+            className="hover:text-amber-300 transition-colors cursor-pointer bg-transparent border-0 p-0 text-inherit font-inherit"
+          >
+            {t("footer_hyperlink")}
+          </button>
           <span className="text-blue-800 hidden sm:inline">|</span>
-          <a href="#copyright" className="hover:text-amber-300 transition-colors">{t("footer_copyright")}</a>
+          <button
+            type="button"
+            onClick={(e) => openPolicy("copyright", e)}
+            className="hover:text-amber-300 transition-colors cursor-pointer bg-transparent border-0 p-0 text-inherit font-inherit"
+          >
+            {t("footer_copyright")}
+          </button>
           <span className="text-blue-800 hidden sm:inline">|</span>
-          <a href="#accessibility" className="hover:text-amber-300 transition-colors">{t("footer_accessibility")}</a>
+          <button
+            type="button"
+            onClick={(e) => openPolicy("accessibility", e)}
+            className="hover:text-amber-300 transition-colors cursor-pointer bg-transparent border-0 p-0 text-inherit font-inherit"
+          >
+            {t("footer_accessibility")}
+          </button>
           <span className="text-blue-800 hidden sm:inline">|</span>
-          <a href="#disclaimer" className="hover:text-amber-300 transition-colors">{t("footer_disclaimer")}</a>
+          <button
+            type="button"
+            onClick={(e) => openPolicy("disclaimer", e)}
+            className="hover:text-amber-300 transition-colors cursor-pointer bg-transparent border-0 p-0 text-inherit font-inherit"
+          >
+            {t("footer_disclaimer")}
+          </button>
         </div>
 
         {/* Bottom copyright & last updated row */}
@@ -55,10 +101,19 @@ export default function GoiFooter() {
           <p>{t("footer_copyright_text")}</p>
           <div className="flex items-center gap-4">
             <span className="text-amber-400 font-medium">{t("footer_last_updated")}</span>
-            <span>Version: 3.2-PROD-STABLE</span>
+            <span>{t("Version")}: 3.2-PROD-STABLE</span>
           </div>
         </div>
       </div>
+
+      {/* Accessible GIGW 3.0 Policy Dialog */}
+      {activePolicy && (
+        <PolicyModal
+          policyKey={activePolicy}
+          onClose={() => setActivePolicy(null)}
+          triggerRef={triggerRef}
+        />
+      )}
     </footer>
   );
 }
