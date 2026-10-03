@@ -34,7 +34,7 @@ export default function Home() {
   const { t, lang } = useTranslation();
   const isHi = lang === "hi";
   const { accessToken, is2FAVerified } = useAuthStore();
-  const { setDashboardPreconfig, setIsTargetToolActive } = useUIStore();
+  const { setDashboardPreconfig } = useUIStore();
   const isAuthenticated = Boolean(accessToken);
   const [activeSlide, setActiveSlide] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -135,11 +135,10 @@ export default function Home() {
       });
       target = "/dashboard?tab=safe-sites&facility=shelter";
     } else if (pillar === "simulation") {
-      setIsTargetToolActive(true);
       setDashboardPreconfig({
         tab: "simulation",
       });
-      target = "/dashboard?tab=simulation&target=true";
+      target = "/dashboard?tab=simulation";
     }
 
     if (isAuthenticated && is2FAVerified) {
@@ -152,7 +151,7 @@ export default function Home() {
   const slides = [
     {
       id: "slide-1",
-      route: "/public-map?tool=simulation",
+      route: "/public-map",
       title: isHi ? "आपदा परिदृश्य एवं प्रभाव त्रिज्या सिमुलेशन" : "AI Multi-Hazard Scenario Blast Simulation",
       subtitle: isHi ? "भूस्खलन, बादल फटना, जीएलओएफ एवं भूकंप प्रभाव विश्लेषण" : "Live PostGIS 3-Tier Zoning (Direct Hit, High Alert, Advisory)",
       badge: isHi ? "निर्णय समर्थन प्रणाली" : "DSS Spatial Query",

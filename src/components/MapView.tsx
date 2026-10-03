@@ -561,6 +561,15 @@ export default function MapView({
     setTargetBrief(null);
   }, []);
 
+  // Target Mode is strictly inactive by default upon page load and page refresh
+  useEffect(() => {
+    setIsTargetToolActive(false);
+    clearTargetTool();
+    return () => {
+      setIsTargetToolActive(false);
+    };
+  }, [setIsTargetToolActive, clearTargetTool]);
+
   const handleSetTargetEpicenter = useCallback((lat: number, lon: number, radiusKm: number) => {
     if (!mapRef.current) return;
     setTargetEpicenter({ lat, lon });

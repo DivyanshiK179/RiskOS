@@ -230,10 +230,7 @@ export default function Dashboard() {
       }
     }
 
-    const qTarget = searchParams.get("target");
-    if (qTarget === "true" || qTab === "simulation" || qTab === "simulate" || dashboardPreconfig?.tab === "simulation") {
-      setIsTargetToolActive(true);
-    }
+    setIsTargetToolActive(false);
 
     if (dashboardPreconfig) {
       setDashboardPreconfig(null);

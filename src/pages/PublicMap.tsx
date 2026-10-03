@@ -17,7 +17,6 @@ import { extractCleanDistricts } from "../lib/districts";
 
 export default function PublicMap() {
   const [searchParams] = useSearchParams();
-  const toolParam = searchParams.get("tool");
   const layerParam = searchParams.get("layer");
   const filterParam = searchParams.get("filter");
 
@@ -29,10 +28,8 @@ export default function PublicMap() {
   const { inspectorCollapsed, toggleInspector, toggleLayers, toggleZenMode, setIsTargetToolActive } = useUIStore();
 
   useEffect(() => {
-    if (toolParam === "simulation") {
-      setIsTargetToolActive(true);
-    }
-  }, [toolParam, setIsTargetToolActive]);
+    setIsTargetToolActive(false);
+  }, [setIsTargetToolActive]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

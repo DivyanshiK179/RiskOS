@@ -10,7 +10,7 @@ export default function PillarsPage() {
   const { lang } = useTranslation();
   const isHi = lang === "hi";
   const navigate = useNavigate();
-  const { setDashboardPreconfig, setIsTargetToolActive } = useUIStore();
+  const { setDashboardPreconfig } = useUIStore();
 
   const handlePillarClick = (pillar: "landslide" | "flood" | "shelters" | "simulation") => {
     if (pillar === "landslide") {
@@ -34,11 +34,10 @@ export default function PillarsPage() {
       });
       navigate("/dashboard?tab=safe-sites&facility=shelter");
     } else if (pillar === "simulation") {
-      setIsTargetToolActive(true);
       setDashboardPreconfig({
         tab: "simulation",
       });
-      navigate("/dashboard?tab=simulation&target=true");
+      navigate("/dashboard?tab=simulation");
     }
   };
 
