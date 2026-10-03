@@ -2110,33 +2110,53 @@ export default function MapView({
             </button>
 
             {basemapDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-2xl p-2 z-40 space-y-1 text-xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1 block">
-                  {isHi ? "आधार मानचित्र का चयन" : "Select Basemap Layer"}
-                </span>
-                {BASEMAP_OPTIONS.map((opt) => {
-                  const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => {
-                        switchBasemap(opt.id as BasemapType);
-                        setBasemapDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                        isSelected
-                          ? "bg-blue-600 text-white font-bold"
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>{opt.icon}</span>
-                        <span>{isHi ? opt.hiLabel : opt.label}</span>
-                      </span>
-                      {isSelected && <span className="text-[10px]">✓</span>}
-                    </button>
-                  );
-                })}
+              <div className="absolute right-0 mt-1.5 w-72 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-2xl p-2.5 z-40 space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    {isHi ? "आधार मानचित्र का चयन" : "Select Basemap Layer"}
+                  </span>
+                  <span className="text-[9px] font-mono text-blue-400 font-bold">{currentOption.label}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {BASEMAP_OPTIONS.map((opt) => {
+                    const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+                    const subtitleTag =
+                      opt.id === "bhuvan"
+                        ? "BHUVAN"
+                        : opt.id === "satellite"
+                        ? "SATELLITE"
+                        : opt.id === "topo"
+                        ? "TOPO"
+                        : "STREETS";
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          switchBasemap(opt.id as BasemapType);
+                          setBasemapDropdownOpen(false);
+                        }}
+                        className={`flex items-center gap-2.5 rounded-xl p-2.5 text-left transition-all ${
+                          isSelected
+                            ? "border-2 border-blue-500 bg-blue-500/10 text-white font-medium"
+                            : "border border-slate-700/80 bg-slate-800/60 hover:bg-slate-800 hover:border-slate-600 rounded-xl p-2.5 text-slate-300"
+                        }`}
+                        title={isHi ? opt.hiLabel : opt.label}
+                        aria-label={opt.label}
+                      >
+                        <span className="text-xl flex-shrink-0">{opt.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs font-semibold block truncate leading-tight">
+                            {isHi ? opt.hiLabel : opt.label}
+                          </span>
+                          <span className="text-[9px] text-slate-400 block uppercase tracking-wider font-mono">
+                            {subtitleTag}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -2507,47 +2527,6 @@ export default function MapView({
 
             {activeLayerTab === "layers" ? (
               <div className="space-y-3">
-                {/* Basemap Provider Selector Cards */}
-                <div className="space-y-1.5 pb-2.5 border-b border-slate-200 dark:border-slate-700/60">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                      {isHi ? "आधार मानचित्र (Basemap)" : "Basemap Provider"}
-                    </span>
-                    <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 font-mono">
-                      {currentOption.icon} {isHi ? currentOption.hiLabel : currentOption.label}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {BASEMAP_OPTIONS.map((opt) => {
-                      const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => switchBasemap(opt.id as BasemapType)}
-                          className={`group relative flex items-center gap-2 p-1.5 rounded-lg border text-left transition-all ${
-                            isSelected
-                              ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/50 opacity-100 shadow-xs"
-                              : "border-slate-200 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-800/60"
-                          }`}
-                          title={isHi ? opt.hiLabel : opt.label}
-                          aria-label={opt.label}
-                        >
-                          <span className="text-base flex-shrink-0">{opt.icon}</span>
-                          <div className="min-w-0 flex-1">
-                            <span className={`text-[10px] font-bold block truncate leading-tight ${isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"}`}>
-                              {isHi ? opt.hiLabel : opt.label}
-                            </span>
-                            <span className="text-[8.5px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-mono">
-                              {opt.id}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
                 {/* 1. Core Settlements & Safe Shelters */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
@@ -2669,38 +2648,50 @@ export default function MapView({
         </div>
       )}
 
-      {/* Basemap Quick-Preview Thumb Cards (Bottom Right, BharatMaps Style) */}
+      {/* Basemap Selection Cards (Bottom Right, Structured 2x2 Grid) */}
       <div className="absolute bottom-10 right-4 z-20">
-        <div className="flex items-center gap-1.5 p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-2xl">
-          {BASEMAP_OPTIONS.map((opt) => {
-            const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => switchBasemap(opt.id as BasemapType)}
-                className={`relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border transition-all ${
-                  isSelected
-                    ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md scale-102"
-                    : "border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50/80 dark:bg-slate-800/80"
-                }`}
-                title={`Select ${isHi ? opt.hiLabel : opt.label}`}
-                aria-label={opt.label}
-              >
-                <div className="w-full flex-1 flex items-center justify-center">
-                  <span className="text-base select-none">{opt.icon}</span>
-                </div>
-                {/* Single legible badge/label beneath the icon (no duplicated text) */}
-                <span
-                  className={`text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight ${
-                    isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"
+        <div className="p-2 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-2xl">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1 flex items-center justify-between">
+            <span>{isHi ? "आधार मानचित्र" : "BASEMAP PROVIDER"}</span>
+            <span className="text-blue-400 font-mono text-[9px] font-semibold">{currentOption.label}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 w-72">
+            {BASEMAP_OPTIONS.map((opt) => {
+              const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+              const subtitleTag =
+                opt.id === "bhuvan"
+                  ? "BHUVAN"
+                  : opt.id === "satellite"
+                  ? "SATELLITE"
+                  : opt.id === "topo"
+                  ? "TOPO"
+                  : "STREETS";
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => switchBasemap(opt.id as BasemapType)}
+                  className={`flex items-center gap-2.5 rounded-xl p-2.5 text-left transition-all ${
+                    isSelected
+                      ? "border-2 border-blue-500 bg-blue-500/10 text-white font-medium shadow-md"
+                      : "border border-slate-700/80 bg-slate-800/60 hover:bg-slate-800 hover:border-slate-600 rounded-xl p-2.5 text-slate-300"
                   }`}
+                  title={`Select ${isHi ? opt.hiLabel : opt.label}`}
+                  aria-label={opt.label}
                 >
-                  {opt.id === "bhuvan" ? "BHUVAN" : opt.id === "satellite" ? "SATELLITE" : opt.id === "topo" ? "TOPO" : "STREETS"}
-                </span>
-              </button>
-            );
-          })}
+                  <span className="text-xl flex-shrink-0">{opt.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-semibold block truncate leading-tight">
+                      {isHi ? opt.hiLabel : opt.label}
+                    </span>
+                    <span className="text-[9px] text-slate-400 block uppercase tracking-wider font-mono">
+                      {subtitleTag}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
