@@ -3,6 +3,8 @@ export type PriorityLevel = "IMMEDIATE" | "SHORT_TERM" | "MEDIUM_TERM";
 export type PlanStatus = "PROPOSED" | "APPROVED" | "IN_PROGRESS" | "COMPLETED";
 export type AlertSeverity = "INFO" | "WARNING" | "CRITICAL";
 export type UserRole = "PUBLIC" | "OFFICIAL" | "SUPERADMIN";
+export type NdmaRole = "DISTRICT_MAGISTRATE" | "DEOC_OPERATOR" | "SDRF_COMMANDER" | "PUBLIC_CITIZEN";
+export type ApprovalStatus = "APPROVED" | "PENDING" | "REJECTED";
 
 export interface UserProfile {
   id: number;
@@ -11,9 +13,16 @@ export interface UserProfile {
   first_name?: string;
   last_name?: string;
   role: UserRole;
+  approval_status?: ApprovalStatus;
+  clearanceRole?: NdmaRole;
   department: string;
+  designation?: string;
   district: string;
+  phone_number?: string;
+  employee_id?: string;
   is_staff: boolean;
+  date_joined?: string;
+  twoFactorVerified?: boolean;
 }
 
 export interface HabitationFeatureProperties {

@@ -28,15 +28,15 @@ export default function GoiTopBar() {
         <div className="w-1/3 bg-[#138808]" title="Green" />
       </div>
 
-      {/* Top Utility Bar (32px height) */}
-      <div className="bg-[#1E1B4B] dark:bg-[#0A0F1D] text-slate-100 text-[11px] px-3 sm:px-6 h-[32px] flex items-center justify-between border-b border-indigo-950/80 dark:border-slate-800 shadow-sm select-none transition-colors">
+      {/* Top Utility Bar (Fluid auto-wrap height) */}
+      <div className="bg-[#1E1B4B] dark:bg-[#0A0F1D] text-slate-100 text-[11px] px-2.5 sm:px-6 min-h-[32px] py-1 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-indigo-950/80 dark:border-slate-800 shadow-sm select-none transition-colors">
         {/* Left: Official Government of India breadcrumb */}
-        <div className="flex items-center gap-2 sm:gap-2.5 truncate">
-          <span className="font-bold tracking-wide text-amber-300">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <span className="font-bold tracking-wide text-amber-300 text-[10px] sm:text-[11px] truncate">
             {lang === "hi" ? "भारत सरकार | Government of India" : "भारत सरकार | Government of India"}
           </span>
           <span className="text-indigo-400 dark:text-slate-600 hidden sm:inline">•</span>
-          <span className="text-slate-200 font-medium hidden md:inline">
+          <span className="text-slate-200 font-medium hidden md:inline truncate">
             {t("Ministry of Electronics & IT (MeitY)")}
           </span>
           <span className="text-indigo-400 dark:text-slate-600 hidden lg:inline">•</span>

@@ -32,7 +32,9 @@ export default function HabitationDetailPanel({
   });
 
   return (
-    <aside className="absolute right-0 top-0 h-full w-[380px] bg-white dark:bg-[#0a1220] border-l border-slate-200 dark:border-slate-800 flex flex-col z-20 animate-slide-in-right overflow-hidden shadow-2xl">
+    <aside className="fixed sm:absolute inset-x-0 bottom-0 sm:inset-x-auto sm:right-0 sm:top-0 max-h-[85vh] sm:max-h-none sm:h-full w-full sm:w-[380px] rounded-t-2xl sm:rounded-none bg-white dark:bg-[#0a1220] border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 flex flex-col z-50 sm:z-20 animate-slide-in-right overflow-hidden shadow-2xl">
+      {/* Mobile sheet drag pill */}
+      <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2 sm:hidden shrink-0" />
       {/* Header */}
       <div className="flex-none flex items-start justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#080e1d]">
         <div className="min-w-0">

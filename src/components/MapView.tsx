@@ -30,7 +30,9 @@ import {
 } from "lucide-react";
 import { useTranslation } from "../i18n/translations";
 import { useUIStore } from "../store/uiStore";
+import { useAuthStore } from "../store/authStore";
 import { DISTRICT_CENTROIDS, UTTARAKHAND_DEFAULT_CENTER, DISTRICT_NAMES_HI } from "../lib/districts";
+import { SOI_AUTHORITATIVE_BOUNDARY_GEOJSON } from "../lib/soiBoundary";
 
 interface MapViewProps {
   district?: string;
@@ -56,7 +58,7 @@ interface MapViewProps {
   initialFacility?: string;
 }
 
-type BasemapType = "satellite" | "street" | "topo";
+type BasemapType = "satellite" | "street" | "topo" | "bhuvan";
 
 export const BASEMAPS = {
   satellite: {
@@ -70,6 +72,10 @@ export const BASEMAPS = {
   topo: {
     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
     attribution: "OpenTopoMap",
+  },
+  bhuvan: {
+    url: import.meta.env.VITE_OFFLINE_TILE_SERVER || "https://tile1.nrsc.gov.in/tilecache/tilecache.py/1.0.0/bhuvan_layer/{z}/{x}/{y}.png",
+    attribution: "ISRO / NRSC Bhuvan, Survey of India, SDC Uttarakhand",
   },
 };
 
@@ -219,11 +225,14 @@ export default function MapView({
     isTargetToolActive,
     setIsTargetToolActive,
   } = useUIStore();
+  const clearanceRole = useAuthStore((s) => s.clearanceRole);
   const langRef = useRef(lang);
   const themeRef = useRef(theme);
+  const clearanceRoleRef = useRef(clearanceRole);
 
   useEffect(() => { langRef.current = lang; }, [lang]);
   useEffect(() => { themeRef.current = theme; }, [theme]);
+  useEffect(() => { clearanceRoleRef.current = clearanceRole; }, [clearanceRole]);
 
   // Debounced MapLibre canvas resize on panel animations
   useEffect(() => {
@@ -971,7 +980,13 @@ export default function MapView({
             <tr><td style="padding:5px 0 0;color:${textSub};" colspan="2">
               <div style="font-size:10px;color:${textSub};margin-top:2px;border-top:1px dashed ${borderBox};padding-top:4px;line-height:1.4;">
                 <strong style="color:${textTitle};">${isHi ? "नोडल अधिकारी / नियंत्रण कक्ष:" : "Nodal Officer / Control Room:"}</strong><br/>
-                ${props.emergency_contact || (isHi ? `डीईओसी नियंत्रण कक्ष (${DISTRICT_NAMES_HI[props.district] || props.district}) • टोल-फ्री 1077 / 112` : `DEOC Control Room (${props.district}) • Toll-Free 1077 / 112`)}
+                ${(() => {
+                  const raw = props.emergency_contact || (isHi ? `डीईओसी नियंत्रण कक्ष (${DISTRICT_NAMES_HI[props.district] || props.district}) • टोल-फ्री 1077 / 112` : `DEOC Control Room (${props.district}) • Toll-Free 1077 / 112`);
+                  if (clearanceRoleRef.current === "PUBLIC_CITIZEN") {
+                    return raw.replace(/(\+?91[\s-]?)?([6-9]\d{2})\d{4,5}(\d{2})/g, "$1$2•••••$3 <span style=\"font-size:9px;color:#94A3B8;\">[PII Masked]</span>");
+                  }
+                  return raw;
+                })()}
               </div>
             </td></tr>
           </table>
@@ -1148,6 +1163,15 @@ export default function MapView({
             tileSize: 256,
             maxzoom: 17,
           },
+          // 5. ISRO Bhuvan NRSC / SDC Fallback Basemap
+          "bhuvan-basemap": {
+            type: "raster",
+            tiles: [
+              import.meta.env.VITE_OFFLINE_TILE_SERVER || "https://tile1.nrsc.gov.in/tilecache/tilecache.py/1.0.0/bhuvan_layer/{z}/{x}/{y}.png",
+            ],
+            tileSize: 256,
+            maxzoom: 19,
+          },
         },
         layers: [
           // Base Rasters (Z-index 0)
@@ -1179,6 +1203,14 @@ export default function MapView({
             id: "base-topo",
             type: "raster",
             source: "open-topo",
+            minzoom: 0,
+            maxzoom: 22,
+            layout: { visibility: "none" },
+          },
+          {
+            id: "base-bhuvan",
+            type: "raster",
+            source: "bhuvan-basemap",
             minzoom: 0,
             maxzoom: 22,
             layout: { visibility: "none" },
@@ -1509,6 +1541,34 @@ export default function MapView({
         },
       });
 
+      // 0. Official Survey of India (SOI) Statutory Inviolable Boundary Overlay
+      map.addSource("soi-boundary", {
+        type: "geojson",
+        data: SOI_AUTHORITATIVE_BOUNDARY_GEOJSON,
+      });
+
+      map.addLayer({
+        id: "soi-boundary-casing",
+        type: "line",
+        source: "soi-boundary",
+        paint: {
+          "line-color": "#FFFFFF",
+          "line-width": 4,
+          "line-opacity": 0.55,
+        },
+      });
+
+      map.addLayer({
+        id: "soi-boundary-line",
+        type: "line",
+        source: "soi-boundary",
+        paint: {
+          "line-color": "#FF9933", // Official National Saffron
+          "line-width": 2.2,
+          "line-opacity": 0.95,
+        },
+      });
+
       // ── Event Handlers ──
       map.on("click", (e: any) => {
         // Measurement tool interaction
@@ -1643,18 +1703,28 @@ export default function MapView({
       if (m.getLayer("base-street-light")) m.setLayoutProperty("base-street-light", "visibility", "none");
       if (m.getLayer("base-street-dark")) m.setLayoutProperty("base-street-dark", "visibility", "none");
       if (m.getLayer("base-topo")) m.setLayoutProperty("base-topo", "visibility", "none");
+      if (m.getLayer("base-bhuvan")) m.setLayoutProperty("base-bhuvan", "visibility", "none");
     } else if (type === "street") {
       if (m.getLayer("base-satellite")) m.setLayoutProperty("base-satellite", "visibility", "none");
       if (m.getLayer("base-labels")) m.setLayoutProperty("base-labels", "visibility", "none");
       if (m.getLayer("base-street-light")) m.setLayoutProperty("base-street-light", "visibility", isDark ? "none" : "visible");
       if (m.getLayer("base-street-dark")) m.setLayoutProperty("base-street-dark", "visibility", isDark ? "visible" : "none");
       if (m.getLayer("base-topo")) m.setLayoutProperty("base-topo", "visibility", "none");
+      if (m.getLayer("base-bhuvan")) m.setLayoutProperty("base-bhuvan", "visibility", "none");
     } else if (type === "topo") {
       if (m.getLayer("base-satellite")) m.setLayoutProperty("base-satellite", "visibility", "none");
       if (m.getLayer("base-labels")) m.setLayoutProperty("base-labels", "visibility", "none");
       if (m.getLayer("base-street-light")) m.setLayoutProperty("base-street-light", "visibility", "none");
       if (m.getLayer("base-street-dark")) m.setLayoutProperty("base-street-dark", "visibility", "none");
       if (m.getLayer("base-topo")) m.setLayoutProperty("base-topo", "visibility", "visible");
+      if (m.getLayer("base-bhuvan")) m.setLayoutProperty("base-bhuvan", "visibility", "none");
+    } else if (type === "bhuvan") {
+      if (m.getLayer("base-satellite")) m.setLayoutProperty("base-satellite", "visibility", "none");
+      if (m.getLayer("base-labels")) m.setLayoutProperty("base-labels", "visibility", "visible");
+      if (m.getLayer("base-street-light")) m.setLayoutProperty("base-street-light", "visibility", "none");
+      if (m.getLayer("base-street-dark")) m.setLayoutProperty("base-street-dark", "visibility", "none");
+      if (m.getLayer("base-topo")) m.setLayoutProperty("base-topo", "visibility", "none");
+      if (m.getLayer("base-bhuvan")) m.setLayoutProperty("base-bhuvan", "visibility", "visible");
     }
   };
 
@@ -1898,12 +1968,12 @@ export default function MapView({
       <div ref={mapContainer} className="w-full h-full" />
 
       {/* ━━━ LAYER 1: Dedicated Top Action Dock (Floated at top-3) ━━━ */}
-      <div className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between pointer-events-none gap-4">
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-4 right-2 sm:right-4 z-30 flex items-center justify-between pointer-events-none gap-2">
         {/* LEFT: Search Bar & Core GIS Tools */}
-        <div className="flex items-center gap-2 pointer-events-auto bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-xl">
+        <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-xl">
           {/* Search Input */}
           <div className="relative flex items-center">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-2.5 sm:left-3 pointer-events-none" />
             <input
               type="text"
               placeholder={t("searchPlaceholder") || t("search_map_placeholder") || "Search habitations / districts..."}
@@ -1918,7 +1988,7 @@ export default function MapView({
                   handleSelectSearchResult(searchResults[0]);
                 }
               }}
-              className="w-56 focus:w-72 transition-all duration-200 pl-9 pr-7 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 rounded-lg border-0 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-28 sm:w-56 focus:w-44 sm:focus:w-72 transition-all duration-200 pl-8 sm:pl-9 pr-6 sm:pr-7 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 rounded-lg border-0 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
             />
             {mapSearchText && (
               <button
@@ -2011,15 +2081,15 @@ export default function MapView({
         </div>
 
         {/* RIGHT: Standalone Basemap Switcher & Settlement Analytics Drawer Toggle */}
-        <div className="flex items-center gap-2 pointer-events-auto shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto shrink-0">
           {/* Basemap Dropdown */}
           <div className="relative">
             <button
               onClick={() => setBasemapDropdownOpen(!basemapDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 text-xs font-semibold rounded-xl bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
             >
               <MapIcon className="w-4 h-4 text-blue-400" />
-              <span>{activeBasemap === "satellite" ? t("map.satelliteHybrid") : activeBasemap === "street" ? t("map.streetMap") : t("map.topoMap")}</span>
+              <span className="hidden sm:inline">{activeBasemap === "satellite" ? t("map.satelliteHybrid") : activeBasemap === "street" ? t("map.streetMap") : activeBasemap === "topo" ? t("map.topoMap") : t("map.bhuvanMap")}</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
@@ -2061,6 +2131,17 @@ export default function MapView({
                   <span>⛰️ {t("map.topoMap")}</span>
                   {activeBasemap === "topo" && <span className="text-[10px]">✓</span>}
                 </button>
+                <button
+                  onClick={() => { switchBasemap("bhuvan"); setBasemapDropdownOpen(false); }}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
+                    activeBasemap === "bhuvan"
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span>🛰️ {t("map.bhuvanMap")}</span>
+                  {activeBasemap === "bhuvan" && <span className="text-[10px]">✓</span>}
+                </button>
               </div>
             )}
           </div>
@@ -2069,14 +2150,14 @@ export default function MapView({
           {onToggleAnalytics && (
             <button
               onClick={onToggleAnalytics}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl shadow-xl transition whitespace-nowrap ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 text-xs font-semibold rounded-xl shadow-xl transition whitespace-nowrap ${
                 isAnalyticsOpen
                   ? "bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-blue-600/30 ring-2 ring-blue-400/40"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
             >
               <BarChart3 className="w-4 h-4 text-white" />
-              <span className="whitespace-nowrap">{t("settlement_analytics") || "Settlement Analytics"}</span>
+              <span className="hidden md:inline whitespace-nowrap">{t("settlement_analytics") || "Settlement Analytics"}</span>
               <span className="px-1.5 py-0.5 rounded-full bg-blue-800 text-[10px] text-white font-mono font-bold">
                 {(settlementCount ?? 13967).toLocaleString()}
               </span>
@@ -2087,7 +2168,7 @@ export default function MapView({
 
       {/* ━━━ LAYER 2: Dedicated Facility Filter Ribbon (Floated at top-16) ━━━ */}
       <div className="absolute top-16 left-4 z-20 pointer-events-auto">
-        <div className="flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-lg max-w-[calc(100vw-32px)] sm:max-w-[80vw] overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-lg max-w-[calc(100vw-32px)] sm:max-w-[80vw] overflow-x-auto no-scrollbar touch-pan-x">
           {[
             { id: "all", icon: "🌐", label: "All Facilities", key: "facilities.all" },
             { id: "health", icon: "🏥", label: "Health Centers", key: "facilities.healthCenters" },
@@ -2257,7 +2338,9 @@ export default function MapView({
 
       {/* Floating BharatMaps-style Epicenter Incident Brief Card */}
       {targetBrief && (
-        <div className="absolute bottom-12 left-4 z-30 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto flex flex-col gap-3">
+        <div className="fixed sm:absolute inset-x-0 bottom-0 sm:bottom-12 sm:left-4 sm:right-auto z-40 sm:z-30 w-full sm:w-96 max-w-full sm:max-w-[calc(100vw-2rem)] max-h-[85vh] overflow-y-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-t-2xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto flex flex-col gap-3">
+          {/* Mobile Drag Indicator */}
+          <div className="sm:hidden w-10 h-1 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto -mt-1 mb-1" />
           {/* Header */}
           <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">
@@ -2557,7 +2640,8 @@ export default function MapView({
             const nextMap: Record<BasemapType, BasemapType> = {
               satellite: "street",
               street: "topo",
-              topo: "satellite",
+              topo: "bhuvan",
+              bhuvan: "satellite",
             };
             switchBasemap(nextMap[activeBasemap]);
           }}
@@ -2576,8 +2660,13 @@ export default function MapView({
                 <span className="text-sm">⛰️</span>
                 <span className="text-[9px] uppercase font-bold tracking-tight">{t("Topo")}</span>
               </div>
+            ) : activeBasemap === "topo" ? (
+              <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-950 flex flex-col items-center justify-center p-1 text-center">
+                <span className="text-sm">🛰️</span>
+                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Bhuvan")}</span>
+              </div>
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-slate-900 to-indigo-950 flex flex-col items-center justify-center p-1 text-center">
+              <div className="w-full h-full bg-gradient-to-br from-slate-900 to-emerald-950 flex flex-col items-center justify-center p-1 text-center">
                 <span className="text-sm">🛰️</span>
                 <span className="text-[9px] uppercase font-bold tracking-tight">{t("Satellite")}</span>
               </div>
@@ -2585,7 +2674,7 @@ export default function MapView({
             <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition" />
           </div>
           <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5 tracking-wider uppercase">
-            {activeBasemap === "satellite" ? t("Street") : activeBasemap === "street" ? t("Topo") : t("Satellite")}
+            {activeBasemap === "satellite" ? t("Street") : activeBasemap === "street" ? t("Topo") : activeBasemap === "topo" ? t("Bhuvan") : t("Satellite")}
           </span>
         </button>
       </div>

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X, ChevronRight, BarChart3 } from "lucide-react";
 import { getHabitations } from "../api/habitations";
 import { getAlerts } from "../api/relocation";
-import { getGeoStats } from "../api/stats";
+import { getGeoStats, type GeoStats } from "../api/stats";
 import MapView from "../components/MapView";
 import HabitationDetailPanel from "../components/HabitationDetailPanel";
 import GoiTopBar from "../components/GoiTopBar";
@@ -64,9 +64,9 @@ export default function PublicMap() {
     queryFn: () => getAlerts(),
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<GeoStats>({
     queryKey: ["geo-stats"],
-    queryFn: getGeoStats,
+    queryFn: () => getGeoStats(),
   });
 
   const availableDistricts = useMemo(() => {

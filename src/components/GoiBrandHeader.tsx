@@ -1,20 +1,36 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, User, LogOut, LogIn, ExternalLink } from "lucide-react";
+import { Clock, User, LogOut, Lock, ExternalLink, Radio, Menu, X } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { useTranslation } from "../i18n/translations";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 
 interface GoiBrandHeaderProps {
   isPublic?: boolean;
+  showNav?: boolean;
+  activeNav?: string;
 }
 
-export default function GoiBrandHeader({ isPublic = false }: GoiBrandHeaderProps) {
-  const { accessToken, username, user, logout } = useAuthStore();
+export default function GoiBrandHeader({
+  isPublic = false,
+  showNav = false,
+  activeNav = "",
+}: GoiBrandHeaderProps) {
+  const { accessToken, username, user, logout, is2FAVerified } = useAuthStore();
+  const isAuthenticated = Boolean(accessToken);
   const { t, lang } = useTranslation();
   const navigate = useNavigate();
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const handleEnterDashboard = () => {
+    if (isAuthenticated && is2FAVerified) {
+      navigate("/dashboard");
+    } else {
+      navigate("/login?redirect=%2Fdashboard&reason=2fa_required");
+    }
+  };
 
   // Live IST Clock (DD Mon YYYY, HH:mm:ss IST)
   useEffect(() => {
@@ -50,12 +66,34 @@ export default function GoiBrandHeader({ isPublic = false }: GoiBrandHeaderProps
     navigate("/");
   };
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (window.location.pathname === "/") {
+      e.preventDefault();
+      if (window.location.hash) {
+        window.history.replaceState(null, "", "/");
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleSectionClick = (sectionId: string, e: React.MouseEvent) => {
+    setMobileNavOpen(false);
+    if (window.location.pathname === "/") {
+      e.preventDefault();
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.history.replaceState(null, "", "/");
+      }
+    }
+  };
+
   return (
     <>
       <header className="w-full h-16 min-h-[64px] flex items-center justify-between px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shrink-0 relative z-40 select-none">
         {/* LEFT ZONE: Brand & Title (Dedicated width, shrink-0, clean subtitle) */}
         <div className="flex items-center gap-3 shrink-0">
-          <Link to="/" className="flex items-center gap-3 group select-none">
+          <Link to="/" onClick={handleLogoClick} className="flex items-center gap-3 group select-none">
             {/* Circular RiskOS Logo */}
             <div className="h-10 w-10 shrink-0 rounded-full overflow-hidden p-0.5 bg-gradient-to-tr from-blue-700 via-indigo-600 to-amber-500 shadow-md group-hover:scale-105 transition-transform">
               <img
@@ -163,13 +201,13 @@ export default function GoiBrandHeader({ isPublic = false }: GoiBrandHeaderProps
               </div>
 
               {isPublic && (
-                <Link
-                  to="/dashboard"
+                <button
+                  onClick={handleEnterDashboard}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1E3A8A] hover:bg-blue-900 text-white text-xs font-bold rounded-lg shadow-sm transition"
                 >
-                  <span>{t("command_centre")}</span>
+                  <span>{lang === "hi" ? "कमांड डैशबोर्ड →" : "Enter Dashboard →"}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
-                </Link>
+                </button>
               )}
 
               {/* Sign Out Button */}
@@ -184,17 +222,160 @@ export default function GoiBrandHeader({ isPublic = false }: GoiBrandHeaderProps
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1E3A8A] hover:bg-blue-900 text-white text-xs font-bold shadow-md transition"
+              <button
+                onClick={handleEnterDashboard}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#0B2545] hover:bg-[#103058] text-white text-xs font-bold shadow-md transition whitespace-nowrap"
               >
-                <LogIn className="w-3.5 h-3.5 text-amber-400" />
-                <span>{t("official_login")}</span>
-              </Link>
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>{lang === "hi" ? "कमांड डैशबोर्ड में प्रवेश →" : "Enter Dashboard →"}</span>
+              </button>
             </div>
           )}
         </div>
       </header>
+
+      {/* Secondary Navigation Menu Strip (Strict Single-Line Alignment) */}
+      {showNav && (
+        <div className="w-full bg-[#0B2545] border-t border-blue-900/40 px-3 sm:px-6 lg:px-8 xl:px-12 py-2 flex flex-nowrap items-center justify-between gap-4 text-white shrink-0 shadow-sm relative z-30 select-none">
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs font-bold tracking-wider text-slate-200 uppercase whitespace-nowrap shrink-0">
+            <Link
+              to="/#mandate"
+              onClick={(e) => handleSectionClick("mandate", e)}
+              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+                activeNav === "mandate" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
+              }`}
+            >
+              {lang === "hi" ? "वैधानिक जनादेश" : "STATUTORY MANDATE"}
+            </Link>
+            <Link
+              to="/#pillars"
+              onClick={(e) => handleSectionClick("pillars", e)}
+              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+                activeNav === "pillars" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
+              }`}
+            >
+              {lang === "hi" ? "वैज्ञानिक स्तंभ" : "PILLARS"}
+            </Link>
+            <Link
+              to="/#statistics"
+              onClick={(e) => handleSectionClick("statistics", e)}
+              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+                activeNav === "telemetry" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
+              }`}
+            >
+              {lang === "hi" ? "राज्य सांख्यिकी" : "STATE TELEMETRY"}
+            </Link>
+            <Link
+              to="/#architecture"
+              onClick={(e) => handleSectionClick("architecture", e)}
+              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+                activeNav === "architecture" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
+              }`}
+            >
+              {lang === "hi" ? "डेटा पाइपलाइन" : "ARCHITECTURE"}
+            </Link>
+            <Link
+              to="/#faqs"
+              onClick={(e) => handleSectionClick("faqs", e)}
+              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+                activeNav === "faqs" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
+              }`}
+            >
+              {lang === "hi" ? "एफएक्यू" : "FAQS"}
+            </Link>
+            <Link
+              to="/#contact"
+              onClick={(e) => handleSectionClick("contact", e)}
+              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+                activeNav === "helpline" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
+              }`}
+            >
+              {lang === "hi" ? "हेल्पलाइन" : "HELPLINE"}
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-2.5 shrink-0 ml-auto lg:ml-0">
+            <Link
+              to="/public-map"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold rounded-lg border border-slate-700 transition shrink-0 whitespace-nowrap"
+              title="Public Citizen Incident Map"
+            >
+              <Radio className="w-3.5 h-3.5 text-[#F46036] animate-pulse" />
+              <span>{lang === "hi" ? "सार्वजनिक मानचित्र" : "Public Map"}</span>
+            </Link>
+
+            <button
+              onClick={handleEnterDashboard}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1E3A8A] hover:bg-blue-800 text-white text-xs font-bold rounded-lg border border-blue-700 transition shrink-0 whitespace-nowrap shadow-sm"
+              title="Enter Official Command Dashboard"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>{lang === "hi" ? "कमांड डैशबोर्ड →" : "Enter Dashboard →"}</span>
+            </button>
+
+            <button
+              onClick={() => setMobileNavOpen(!mobileNavOpen)}
+              className="lg:hidden p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 border border-slate-700 shrink-0"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileNavOpen}
+            >
+              {mobileNavOpen ? <X className="w-4 h-4 text-red-400" /> : <Menu className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Navigation Drawer for GoiBrandHeader */}
+      {showNav && mobileNavOpen && (
+        <div className="lg:hidden bg-[#081930] border-t border-slate-800 px-4 py-3 space-y-2 text-white animate-in slide-in-from-top duration-200">
+          <nav className="flex flex-col gap-1 text-xs font-bold">
+            <Link
+              to="/#mandate"
+              onClick={(e) => handleSectionClick("mandate", e)}
+              className="px-3 py-2 rounded-lg hover:bg-slate-800 uppercase tracking-wider whitespace-nowrap"
+            >
+              {lang === "hi" ? "वैधानिक जनादेश" : "STATUTORY MANDATE"}
+            </Link>
+            <Link
+              to="/#pillars"
+              onClick={(e) => handleSectionClick("pillars", e)}
+              className="px-3 py-2 rounded-lg hover:bg-slate-800 uppercase tracking-wider whitespace-nowrap"
+            >
+              {lang === "hi" ? "वैज्ञानिक स्तंभ" : "PILLARS"}
+            </Link>
+            <Link
+              to="/#statistics"
+              onClick={(e) => handleSectionClick("statistics", e)}
+              className="px-3 py-2 rounded-lg hover:bg-slate-800 uppercase tracking-wider whitespace-nowrap"
+            >
+              {lang === "hi" ? "राज्य सांख्यिकी" : "STATE TELEMETRY"}
+            </Link>
+            <Link
+              to="/#architecture"
+              onClick={(e) => handleSectionClick("architecture", e)}
+              className="px-3 py-2 rounded-lg hover:bg-slate-800 uppercase tracking-wider whitespace-nowrap"
+            >
+              {lang === "hi" ? "डेटा पाइपलाइन" : "ARCHITECTURE"}
+            </Link>
+            <Link
+              to="/#faqs"
+              onClick={(e) => handleSectionClick("faqs", e)}
+              className="px-3 py-2 rounded-lg hover:bg-slate-800 uppercase tracking-wider whitespace-nowrap"
+            >
+              {lang === "hi" ? "एफएक्यू" : "FAQS"}
+            </Link>
+            <Link
+              to="/#contact"
+              onClick={(e) => handleSectionClick("contact", e)}
+              className="px-3 py-2 rounded-lg hover:bg-slate-800 uppercase tracking-wider whitespace-nowrap"
+            >
+              {lang === "hi" ? "हेल्पलाइन" : "HELPLINE"}
+            </Link>
+          </nav>
+        </div>
+      )}
 
       {/* Sign Out Confirmation Dialog */}
       <LogoutConfirmModal

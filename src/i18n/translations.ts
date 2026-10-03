@@ -498,6 +498,9 @@ export const DICT: Record<string, Record<"en" | "hi", string>> = {
   "map.satelliteHybrid": { en: "Satellite Hybrid", hi: "उपग्रह हाइब्रिड" },
   "map.streetMap": { en: "Street Map", hi: "सड़क मानचित्र" },
   "map.topoMap": { en: "Topographic", hi: "स्थलाकृतिक मानचित्र" },
+  "map.bhuvanMap": { en: "ISRO Bhuvan NRSC", hi: "इसरो भुवन (NRSC)" },
+  "Bhuvan": { en: "Bhuvan", hi: "भुवन" },
+  "ISRO Bhuvan": { en: "ISRO Bhuvan", hi: "इसरो भुवन" },
   "map.layers": { en: "Layers", hi: "परतें (Layers)" },
   "map.measure": { en: "Measure", hi: "दूरी मापन (Measure)" },
   "map.targetTool": { en: "Target Center", hi: "आपदा प्रभाव केंद्र (Target Center)" },
@@ -541,6 +544,48 @@ export const DICT: Record<string, Record<"en" | "hi", string>> = {
   "est_pop_affected": { en: "Est. Pop. Affected", hi: "अनुमानित प्रभावित आबादी" },
   "nearest_safe_shelters_outside": { en: "Nearest Safe Shelters (Outside Buffer)", hi: "निकटतम सुरक्षित आश्रय (बफर के बाहर)" },
   "launch_simulation_btn": { en: "Launch Multi-Hazard Impact Simulation →", hi: "बहु-आपदा प्रभाव सिमुलेशन प्रारंभ करें →" },
+
+  // ── Statutory Mandate Provisions
+  "mandate.powers_title": {
+    en: "Statutory Powers & Enforcement Provisions",
+    hi: "प्रमुख वैधानिक प्रावधान एवं कानूनी अधिकार"
+  },
+  "mandate.powers_subtitle": {
+    en: "Critical sections under DMA 2005 governing emergency relocations and alerts",
+    hi: "आपदा प्रबंधन अधिनियम 2005 के महत्वपूर्ण खंड"
+  },
+  "mandate.sec34a_title": {
+    en: "Section 34(a) • Mandatory Evacuation Orders",
+    hi: "धारा 34(a) • अनिवार्य निकासी आदेश"
+  },
+  "mandate.sec34a_desc": {
+    en: "Empowers district authorities to direct evacuation from vulnerable zones to safe shelters.",
+    hi: "जिला प्राधिकरण किसी भी खतरनाक क्षेत्र से व्यक्तियों को निकालने और उन्हें सुरक्षित आश्रयों में स्थानांतरित करने का निर्देश दे सकता है।"
+  },
+  "mandate.sec34c_title": {
+    en: "Section 34(c) • Requisitioning of Resources",
+    hi: "धारा 34(c) • संसाधनों एवं आश्रयों का अधिग्रहण"
+  },
+  "mandate.sec34c_desc": {
+    en: "Statutory power to commandeer buildings, transport, and supplies for immediate relief operations.",
+    hi: "राहत कार्य हेतु भवनों, वाहनों तथा आपूर्ति का तत्काल उपयोग सुनिश्चित करने का वैधानिक अधिकार।"
+  },
+  "mandate.sec51_title": {
+    en: "Section 51 • Penalty for Non-Compliance",
+    hi: "धारा 51 • आदेशों की अवज्ञा पर दंड"
+  },
+  "mandate.sec51_desc": {
+    en: "Obstruction or refusal to comply with disaster orders carries 1 to 2 years imprisonment and monetary fines.",
+    hi: "आपदा आदेशों का पालन न करने या बाधा डालने पर अधिनियम के अंतर्गत 1 से 2 वर्ष का कारावास एवं अर्थदंड।"
+  },
+  "mandate.sec54_title": {
+    en: "Section 54 • Punishment for False Warnings",
+    hi: "धारा 54 • झूठी चेतावनी पर विधिक दंड"
+  },
+  "mandate.sec54_desc": {
+    en: "Circulating false alarms or fabricated severity regarding disasters is punishable by up to 1 year imprisonment.",
+    hi: "आपदा या उसकी गंभीरता के संबंध में भ्रामक चेतावनी या अफवाह फैलाने पर 1 वर्ष तक का कारावास।"
+  },
 };
 
 export const DISTRICT_NAMES_HI: Record<string, string> = {

@@ -2,8 +2,18 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import PublicMap from "./pages/PublicMap";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import AccessibilityGrievance from "./pages/AccessibilityGrievance";
+import Sitemap from "./pages/Sitemap";
+import MandatePage from "./pages/MandatePage";
+import PillarsPage from "./pages/PillarsPage";
+import TelemetryPage from "./pages/TelemetryPage";
+import ArchitecturePage from "./pages/ArchitecturePage";
+import FaqsPage from "./pages/FaqsPage";
+import HelplinePage from "./pages/HelplinePage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ScrollToTop from "./components/ScrollToTop";
 import { useUIStore } from "./store/uiStore";
 import { useEffect } from "react";
 
@@ -60,10 +70,20 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/public-map" element={<PublicMap />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/accessibility-grievance" element={<AccessibilityGrievance />} />
+        <Route path="/sitemap" element={<Sitemap />} />
+        <Route path="/mandate" element={<MandatePage />} />
+        <Route path="/pillars" element={<PillarsPage />} />
+        <Route path="/telemetry" element={<TelemetryPage />} />
+        <Route path="/architecture" element={<ArchitecturePage />} />
+        <Route path="/faqs" element={<FaqsPage />} />
+        <Route path="/helpline" element={<HelplinePage />} />
         <Route
           path="/dashboard"
           element={

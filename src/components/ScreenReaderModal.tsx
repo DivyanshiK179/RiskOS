@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { X, Eye, Keyboard, Monitor, ExternalLink, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "../i18n/translations";
 
@@ -334,14 +335,25 @@ export default function ScreenReaderModal({ isOpen, onClose, triggerRef }: Scree
 
         {/* Footer Actions */}
         <div className="sticky bottom-0 z-10 flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/95 backdrop-blur-md">
-          <button
-            type="button"
-            onClick={handleSkipToMain}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <span>{lang === "hi" ? "सीधे मुख्य सामग्री पर जाएं" : "Skip Directly to Main Content"}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleSkipToMain}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <span>{lang === "hi" ? "सीधे मुख्य सामग्री पर जाएं" : "Skip Directly to Main Content"}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+
+            <Link
+              to="/accessibility-grievance"
+              onClick={onClose}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold text-xs transition shadow-sm"
+            >
+              <span>{lang === "hi" ? "सुलभता शिकायत (Grievance)" : "Report Accessibility Barrier"}</span>
+              <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
+            </Link>
+          </div>
 
           <button
             type="button"

@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "../i18n/translations";
 import PolicyModal, { type PolicyKey } from "./PolicyModal";
 
 export default function GoiFooter() {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -12,6 +13,13 @@ export default function GoiFooter() {
     triggerRef.current = e.currentTarget;
     setActivePolicy(key);
   };
+
+  const dynamicDate = new Intl.DateTimeFormat(lang === "hi" ? "hi-IN" : "en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
 
   return (
     <footer className="w-full flex-none bg-[#0B2545] text-slate-300 text-xs border-t border-blue-900 mt-auto select-none">
@@ -94,13 +102,29 @@ export default function GoiFooter() {
           >
             {t("footer_disclaimer")}
           </button>
+          <span className="text-blue-800 hidden sm:inline">|</span>
+          <Link
+            to="/accessibility-grievance"
+            className="hover:text-amber-300 transition-colors cursor-pointer text-inherit"
+          >
+            {lang === "hi" ? "सुलभता निवारण (Grievance)" : "Accessibility Grievance"}
+          </Link>
+          <span className="text-blue-800 hidden sm:inline">|</span>
+          <Link
+            to="/sitemap"
+            className="hover:text-amber-300 transition-colors cursor-pointer text-inherit"
+          >
+            {lang === "hi" ? "साइटमैप (Sitemap)" : "Sitemap"}
+          </Link>
         </div>
 
         {/* Bottom copyright & last updated row */}
         <div className="pt-3 border-t border-blue-900/40 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-400">
           <p>{t("footer_copyright_text")}</p>
           <div className="flex items-center gap-4">
-            <span className="text-amber-400 font-medium">{t("footer_last_updated")}</span>
+            <span className="text-amber-400 font-medium">
+              {lang === "hi" ? `अंतिम अद्यतन: ${dynamicDate}` : `Last Updated: ${dynamicDate}`}
+            </span>
             <span>{t("Version")}: 3.2-PROD-STABLE</span>
           </div>
         </div>

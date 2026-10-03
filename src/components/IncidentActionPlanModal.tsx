@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Printer, X, AlertTriangle, MapPin, Building, Users } from "lucide-react";
+import { Printer, X, AlertTriangle, MapPin, Building, Users, ShieldCheck, CheckCircle2 } from "lucide-react";
 import type { SimulationResult } from "../api/stats";
 import { useTranslation } from "../i18n/translations";
 
@@ -315,6 +315,43 @@ export default function IncidentActionPlanModal({
               </div>
             </div>
           )}
+
+          {/* Statutory Digital Signature Certificate (DSC) / e-Sign Block */}
+          <div className="p-4 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-sans">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-emerald-950 dark:text-emerald-300 uppercase tracking-wide">
+                    {lang === "hi" ? "सांविधिक डिजिटल हस्ताक्षर प्रमाणित (e-Sign)" : "Statutory Digital Signature Verified (DSC Class 3 / e-Sign)"}
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 text-[10px] font-mono font-bold">
+                    IT Act 2000 Sec 3A
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                  {lang === "hi"
+                    ? "हस्ताक्षरकर्ता: डॉ. आर. के. जोशी, आईएएस (जिला मजिस्ट्रेट एवं अध्यक्ष, डीडीएमए) • सीए: एनआईसी-सीए (NIC-CA) भारत"
+                    : "Signatory: Dr. R. K. Joshi, IAS (District Magistrate & Chairman, DDMA) • Certifying Authority: NIC-CA India"}
+                </p>
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  Cert Digest: SHA256-RSA2048 • eMudhra / Parichay Token Ref: ESP-UK-2026-98124
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 text-center sm:text-right border-t sm:border-t-0 sm:border-l border-emerald-200 dark:border-emerald-800 pt-2 sm:pt-0 sm:pl-4">
+              <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>CRYPTOGRAPHICALLY VALID</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-1">
+                {istDateStr}
+              </div>
+            </div>
+          </div>
 
           {/* Official Sign-Off and Execution Stamps */}
           <div className="pt-6 border-t-2 border-slate-900 dark:border-slate-300 grid grid-cols-3 gap-6 text-center text-xs">

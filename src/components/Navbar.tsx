@@ -11,7 +11,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ activeTab, onSelectTab, isDashboard = false }: NavbarProps) {
-  const { accessToken, username, user, logout } = useAuthStore();
+  const { accessToken, username, user, logout, is2FAVerified } = useAuthStore();
   const { theme, setTheme, lang, setLang } = useUIStore();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -151,12 +151,18 @@ export default function Navbar({ activeTab, onSelectTab, isDashboard = false }: 
                 </div>
 
                 {!isDashboard ? (
-                  <Link
-                    to="/dashboard"
+                  <button
+                    onClick={() => {
+                      if (accessToken && is2FAVerified) {
+                        navigate("/dashboard");
+                      } else {
+                        navigate("/login?redirect=/dashboard");
+                      }
+                    }}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm transition"
                   >
                     {t("Open Command Center")}
-                  </Link>
+                  </button>
                 ) : null}
 
                 <button

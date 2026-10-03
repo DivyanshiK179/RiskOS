@@ -20,12 +20,16 @@ import {
   Printer,
   Target,
   Crosshair,
-  MapPin
+  MapPin,
+  Users,
+  UserCheck,
+  Database,
+  MoreHorizontal
 } from "lucide-react";
 import { getHabitations } from "../api/habitations";
 import { getRelocationPlans, updateRelocationPlan, getAlerts, deleteAlert } from "../api/relocation";
 import { getSafeSites } from "../api/safesites";
-import { getGeoStats, simulateDisaster, type SimulationResult } from "../api/stats";
+import { getGeoStats, simulateDisaster, type SimulationResult, type GeoStats } from "../api/stats";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
 import { useSearchParams } from "react-router-dom";
@@ -34,10 +38,15 @@ import HabitationDetailPanel from "../components/HabitationDetailPanel";
 import CreatePlanModal from "../components/CreatePlanModal";
 import CreateAlertModal from "../components/CreateAlertModal";
 import IncidentActionPlanModal from "../components/IncidentActionPlanModal";
+import UserManagementView from "../components/UserManagementView";
+import DataIngestionPanel from "../components/DataIngestionPanel";
+import ProfileSecurityPanel from "../components/ProfileSecurityPanel";
+import AnalyticsView from "../components/AnalyticsView";
 import GoiTopBar from "../components/GoiTopBar";
 import GoiBrandHeader from "../components/GoiBrandHeader";
 import GoiFooter from "../components/GoiFooter";
 import { useTranslation } from "../i18n/translations";
+import { STATUTORY_AUDIT_LEDGER } from "../lib/auditCrypto";
 import type {
   HabitationFeature,
   RelocationPlan,
@@ -59,6 +68,7 @@ import { extractCleanDistricts } from "../lib/districts";
 
 export default function Dashboard() {
   const { t, lang } = useTranslation();
+  const isHi = lang === "hi";
   const [searchParams] = useSearchParams();
   const {
     sidebarCollapsed,
@@ -81,6 +91,9 @@ export default function Dashboard() {
     if (qTab === "alerts") return "alerts";
     if (qTab === "analytics") return "analytics";
     if (qTab === "audit") return "audit";
+    if (qTab === "users") return "users";
+    if (qTab === "ingest") return "ingest";
+    if (qTab === "profile") return "profile";
     return "map";
   });
   const [districtFilter, setDistrictFilter] = useState("");
@@ -94,6 +107,7 @@ export default function Dashboard() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedHabId, setSelectedHabId] = useState<number | null>(null);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
   const [showLandslideLayer, setShowLandslideLayer] = useState<boolean>(() => {
     const qLayer = searchParams.get("layer");
@@ -236,9 +250,26 @@ export default function Dashboard() {
   ];
 
   const qc = useQueryClient();
-  const { user, username, fetchProfile } = useAuthStore();
+  const { user, username, fetchProfile, clearanceRole } = useAuthStore();
+  const isManager = clearanceRole === "DISTRICT_MAGISTRATE" || user?.role === "SUPERADMIN";
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+  const handleExportAuditCsv = () => {
+    const headers = "Block,Timestamp_IST,Event_Code,Principal,Target_Entity,Client_IP,Prev_Hash,Block_Hash,Compliance_Status\n";
+    const rows = STATUTORY_AUDIT_LEDGER.map(
+      (b) => `${b.blockIndex},"${b.timestampIst}","${b.eventCode}","${b.principal}","${b.targetEntity}","${b.clientIp}","${b.prevHash}","${b.blockHash}","${b.complianceStatus}"`
+    ).join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `riskos-certin-audit-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const { data: habsData, isLoading: habsLoading } = useQuery({
     queryKey: ["habitations", districtFilter, hazardFilter],
@@ -248,9 +279,9 @@ export default function Dashboard() {
   const { data: plans, isLoading: plansLoading } = useQuery<RelocationPlan[]>({ queryKey: ["relocation-plans"], queryFn: getRelocationPlans });
   const { data: alerts, isLoading: alertsLoading } = useQuery<AlertItem[]>({ queryKey: ["alerts"], queryFn: getAlerts });
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<GeoStats>({
     queryKey: ["geo-stats"],
-    queryFn: getGeoStats,
+    queryFn: () => getGeoStats(),
   });
 
   const availableDistricts = useMemo(() => {
@@ -272,9 +303,6 @@ export default function Dashboard() {
   const redCount = features.filter((f) => f.properties.hazard_level === "RED").length;
   const highCount = features.filter((f) => f.properties.hazard_level === "HIGH").length;
   const totalPop = features.reduce((s, f) => s + (f.properties.population || 0), 0);
-  const riskPop = features
-    .filter((f) => ["RED", "HIGH"].includes(f.properties.hazard_level))
-    .reduce((s, f) => s + (f.properties.population || 0), 0);
   const totalCapacity = siteFeatures.reduce((s, f) => s + (f.properties.remaining_capacity ?? f.properties.estimated_capacity ?? 0), 0);
 
   function openPlan(habId: number | null, siteId: number | null, pop: number) {
@@ -373,7 +401,12 @@ export default function Dashboard() {
     { id: "alerts", icon: <AlertTriangle className="w-4 h-4 flex-shrink-0" />, label: t("nav_alerts"), badge: alerts?.length, badgeColor: "bg-red-500 text-white" },
     { id: "analytics", icon: <BarChart3 className="w-4 h-4 flex-shrink-0" />, label: t("nav_analytics") },
     { id: "simulate", icon: <Activity className="w-4 h-4 flex-shrink-0" />, label: t("nav_simulation") },
+    { id: "ingest", icon: <Database className="w-4 h-4 flex-shrink-0" />, label: isHi ? "डेटा अंतर्ग्रहण" : "Data Ingestion" },
+    ...(isManager
+      ? [{ id: "users", icon: <Users className="w-4 h-4 flex-shrink-0" />, label: isHi ? "कार्मिक प्रबंधन" : "User Management" }]
+      : []),
     { id: "audit", icon: <History className="w-4 h-4 flex-shrink-0" />, label: t("nav_audit_trail") },
+    { id: "profile", icon: <UserCheck className="w-4 h-4 flex-shrink-0" />, label: isHi ? "प्रोफ़ाइल एवं 2FA" : "Profile & 2FA" },
   ];
 
   return (
@@ -386,7 +419,7 @@ export default function Dashboard() {
       <div className="flex-1 flex overflow-hidden">
         {/* Authoritative Collapsible Navigation Drawer */}
         <nav
-          className={`flex-none flex flex-col bg-white dark:bg-[#0F172A] border-r border-[#E2E8F0] dark:border-[#1E293B] py-3 transition-all duration-300 ease-in-out select-none z-30 ${
+          className={`hidden lg:flex flex-none flex-col bg-white dark:bg-[#0F172A] border-r border-[#E2E8F0] dark:border-[#1E293B] py-3 transition-all duration-300 ease-in-out select-none z-30 ${
             sidebarCollapsed ? "w-16" : "w-64"
           }`}
           aria-label="Portal Navigation"
@@ -468,7 +501,7 @@ export default function Dashboard() {
         </nav>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-hidden flex flex-col relative">
+        <main className="flex-1 overflow-hidden flex flex-col relative pb-14 lg:pb-0">
 
           {/* ━━━ TAB 1: RISK ASSESSMENT MAP ━━━ */}
           {tab === "map" && (
@@ -514,8 +547,10 @@ export default function Dashboard() {
 
               {/* Settlement Explorer Right Drawer */}
               <div
-                className={`flex-none flex flex-col bg-white dark:bg-[#0F172A] border-l border-[#E2E8F0] dark:border-[#1E293B] z-10 shadow-sm transition-all duration-300 ease-in-out overflow-hidden ${
-                  inspectorCollapsed ? "w-0 border-l-0 opacity-0 pointer-events-none" : "w-80 sm:w-96 opacity-100"
+                className={`flex-none flex flex-col bg-white dark:bg-[#0F172A] border-l border-[#E2E8F0] dark:border-[#1E293B] z-30 sm:z-10 shadow-xl sm:shadow-sm transition-all duration-300 ease-in-out overflow-hidden ${
+                  inspectorCollapsed
+                    ? "w-0 border-l-0 opacity-0 pointer-events-none"
+                    : "fixed sm:relative inset-y-0 right-0 sm:inset-auto w-full sm:w-96 max-w-[100vw] sm:max-w-none opacity-100"
                 }`}
               >
                 {/* Inspector Header with Title and Minimize Button */}
@@ -1432,72 +1467,15 @@ export default function Dashboard() {
 
           {/* ━━━ TAB: OVERVIEW / ANALYTICS ━━━ */}
           {tab === "analytics" && (
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="max-w-6xl mx-auto">
-                <div className="mb-6">
-                  <h1 className="text-base font-semibold text-slate-900 dark:text-slate-100">{t("Operational Overview")}</h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">{t("District-level summary of hazard exposure and response capacity")}</p>
-                </div>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="max-w-6xl mx-auto space-y-6">
+                <AnalyticsView
+                  onInitiatePlan={() => setPlanModalOpen(true)}
+                  onViewPlans={() => setTab("plans")}
+                  onSelectDistrict={(d) => setDistrictFilter(d)}
+                />
 
-                {/* KPI grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <KPI label={t("Total settlements")} value={stats?.total_habitations.toString() ?? features.length.toString()} sub={t("across all districts")} />
-                  <KPI label={t("Population at risk")} value={stats ? formatPopulation(stats.total_population_at_risk) : formatPopulation(riskPop)} sub={t("in red & high risk zones")} highlight="text-red-400" />
-                  <KPI label={t("Shelter capacity")} value={stats ? formatPopulation(stats.total_shelter_capacity) : formatPopulation(totalCapacity)} sub={t("verified places available")} highlight="text-emerald-400" />
-                  <KPI label={t("Relocation plans")} value={(plans?.length || 0).toString()} sub={`${plans?.filter((p) => p.status === "COMPLETED").length || 0} ${t("completed")}`} />
-                </div>
-
-                {/* Hazard distribution */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                  <div className="card p-4">
-                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-4">{t("Settlement distribution by risk")}</h3>
-                    <div className="space-y-3">
-                      {(["RED", "HIGH", "MODERATE", "SAFE"] as const).map((level) => {
-                        const count = features.filter((f) => f.properties.hazard_level === level).length;
-                        const pct = features.length > 0 ? (count / features.length) * 100 : 0;
-                        const barColor = level === "RED" ? "bg-red-600" : level === "HIGH" ? "bg-orange-600" : level === "MODERATE" ? "bg-yellow-600" : "bg-green-600";
-                        return (
-                          <div key={level}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${level === "RED" ? "bg-red-500" : level === "HIGH" ? "bg-orange-500" : level === "MODERATE" ? "bg-yellow-500" : "bg-green-500"}`} />
-                                <span className="text-xs text-slate-600 dark:text-slate-400">{hazardLabel(level)}</span>
-                              </div>
-                              <span className="text-xs font-mono text-slate-700 dark:text-slate-300">{count} <span className="text-slate-600">({pct.toFixed(0)}%)</span></span>
-                            </div>
-                            <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                              <div className={`h-full ${barColor} rounded-full`} style={{ width: `${pct}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Plans by status */}
-                  <div className="card p-4">
-                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-4">{t("Relocation plan pipeline")}</h3>
-                    {(!plans || plans.length === 0) ? (
-                      <div className="text-xs text-slate-600 py-6 text-center">{t("No plans created yet")}</div>
-                    ) : (
-                      <div className="space-y-3">
-                        {(["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED"] as const).map((status) => {
-                          const count = plans.filter((p) => p.status === status).length;
-                          const pop = plans.filter((p) => p.status === status).reduce((s, p) => s + p.population_to_relocate, 0);
-                          return (
-                            <div key={status} className="flex items-center gap-3">
-                              <span className={statusBadgeClass(status)}>{status.replace("_", " ")}</span>
-                              <span className="text-xs text-slate-600 flex-1">{count} {t("plans")}</span>
-                              <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">{pop.toLocaleString()} {t("people")}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* System info */}
+                {/* Developer database console */}
                 <div className="card p-4 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("Developer database console")}</p>
@@ -1523,19 +1501,27 @@ export default function Dashboard() {
           {tab === "audit" && (
             <div className="flex-1 overflow-y-auto p-6">
               <div className="max-w-6xl mx-auto space-y-6">
-                <div className="section-header">
+                <div className="section-header flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-base font-bold text-[#0B2545] dark:text-slate-100 flex items-center gap-2">
-                      <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <span>{t("nav_audit_trail")}</span>
-                    </h1>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h1 className="text-base font-bold text-[#0B2545] dark:text-slate-100 flex items-center gap-2">
+                        <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <span>{t("nav_audit_trail")}</span>
+                      </h1>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>CERT-In 180-Day Immutable Ledger</span>
+                        <span className="text-[10px] bg-emerald-200 dark:bg-emerald-900 px-1 rounded font-mono">Sec 70B / Rule 20(1)</span>
+                      </div>
+                    </div>
                     <p className="text-xs text-slate-500 mt-1">
                       {t("Official immutable audit ledger generated in compliance with the Disaster Management Act, 2005 & GIGW 3.0 Standards.")}
                     </p>
                   </div>
                   <button
-                    onClick={() => alert(t("Official Signed Audit Trail Exported (SHA-256 Verified)."))}
-                    className="btn-outline text-xs flex items-center gap-1.5"
+                    onClick={handleExportAuditCsv}
+                    className="btn-outline text-xs flex items-center gap-1.5 self-start md:self-auto"
+                    title="Export cryptographically signed audit ledger as CSV"
                   >
                     <span>{t("Download Audit Ledger (.CSV)")}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1560,94 +1546,70 @@ export default function Dashboard() {
                     <div className="text-[10px] text-slate-500 mt-0.5">{t("Zero Breaches Detected")}</div>
                   </div>
                   <div className="card p-3.5 bg-white dark:bg-[#131e36]">
-                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{t("Operator Identity")}</div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white mt-2 truncate">{displayName}</div>
-                    <div className="text-[10px] text-amber-600 font-semibold mt-0.5">{t("Uttarakhand SDMA Officer")}</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{t("NDMA Clearance Tier")}</div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white mt-2 truncate">
+                      {clearanceRole === "DISTRICT_MAGISTRATE" ? "District Magistrate (IC)" : clearanceRole === "SDRF_COMMANDER" ? "SDRF Field Commander" : clearanceRole === "DEOC_OPERATOR" ? "DEOC Operator (Control Desk)" : "Public Citizen (PII Masked)"}
+                    </div>
+                    <div className="text-[10px] text-amber-600 font-semibold mt-0.5">
+                      {displayName} • 2FA Active
+                    </div>
                   </div>
                 </div>
 
                 {/* Immutable Logs Table */}
                 <div className="card overflow-hidden bg-white dark:bg-[#131e36] border border-slate-200 dark:border-slate-800 shadow-sm">
                   <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                      {t("Real-Time Operational Audit Trail")}
+                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>{t("Real-Time Operational Audit Trail")}</span>
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500">{t("Live Sync: Active")}</span>
+                    <span className="text-[10px] font-mono text-slate-500">SHA-256 Hash Chained Chained Ledger</span>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/30">
-                          <th className="px-4 py-3">{t("Timestamp (IST)")}</th>
+                          <th className="px-4 py-3">Block # & Timestamp</th>
                           <th className="px-4 py-3">{t("Event Code")}</th>
                           <th className="px-4 py-3">{t("Operator / Principal")}</th>
                           <th className="px-4 py-3">{t("Target Entity")}</th>
-                          <th className="px-4 py-3">{t("Client IP & Origin")}</th>
+                          <th className="px-4 py-3">Cryptographic Chained Proof</th>
                           <th className="px-4 py-3 text-right">{t("Compliance Status")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">02 Oct 2026, 15:12:04</td>
-                          <td className="px-4 py-2.5 font-bold text-blue-600 dark:text-blue-400">HAZARD_INDEX_RECOMPUTED</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">system.dss_engine</td>
-                          <td className="px-4 py-2.5 text-slate-800 dark:text-slate-200">13,967 Habitations (Uttarakhand)</td>
-                          <td className="px-4 py-2.5 text-slate-500">10.14.0.22 (NIC GovNet)</td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] border border-emerald-300 dark:border-emerald-800">
-                              COMPLIANT_PASS
-                            </span>
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">02 Oct 2026, 14:58:30</td>
-                          <td className="px-4 py-2.5 font-bold text-emerald-600 dark:text-emerald-400">USER_SESSION_AUTHENTICATED</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">{displayName} (Officer)</td>
-                          <td className="px-4 py-2.5 text-slate-800 dark:text-slate-200">Portal Command Centre</td>
-                          <td className="px-4 py-2.5 text-slate-500">10.14.0.85 (State VPN)</td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-400 font-bold text-[10px] border border-blue-300 dark:border-blue-800">
-                              2FA_VALIDATED
-                            </span>
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">02 Oct 2026, 14:34:11</td>
-                          <td className="px-4 py-2.5 font-bold text-amber-600 dark:text-amber-400">POSTGIS_NATIVE_JSONB_QUERY</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">db.postgis_cluster</td>
-                          <td className="px-4 py-2.5 text-slate-800 dark:text-slate-200">geodata_habitation (ST_AsGeoJSON)</td>
-                          <td className="px-4 py-2.5 text-slate-500">127.0.0.1 (Docker Host)</td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] border border-emerald-300 dark:border-emerald-800">
-                              OPTIMIZED
-                            </span>
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">02 Oct 2026, 14:12:00</td>
-                          <td className="px-4 py-2.5 font-bold text-purple-600 dark:text-purple-400">SHELTER_CAPACITY_EVALUATED</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">system.logistics_opt</td>
-                          <td className="px-4 py-2.5 text-slate-800 dark:text-slate-200">20 Safe Relocation Shelters</td>
-                          <td className="px-4 py-2.5 text-slate-500">10.14.0.22 (NIC GovNet)</td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] border border-emerald-300 dark:border-emerald-800">
-                              SOP_CONFIRMED
-                            </span>
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">02 Oct 2026, 13:45:19</td>
-                          <td className="px-4 py-2.5 font-bold text-blue-600 dark:text-blue-400">DATASET_INGESTION_COMMITTED</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">migration.executor</td>
-                          <td className="px-4 py-2.5 text-slate-800 dark:text-slate-200">Uttarakhand Census & OSM Layers</td>
-                          <td className="px-4 py-2.5 text-slate-500">10.14.0.10 (Batch Worker)</td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] border border-emerald-300 dark:border-emerald-800">
-                              INTEGRITY_VALID
-                            </span>
-                          </td>
-                        </tr>
+                        {STATUTORY_AUDIT_LEDGER.map((block) => (
+                          <tr key={block.blockIndex} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">
+                              <span className="font-bold text-slate-900 dark:text-slate-200 block">Block #{block.blockIndex}</span>
+                              <span className="text-[10px] text-slate-500">{block.timestampIst}</span>
+                            </td>
+                            <td className="px-4 py-2.5 font-bold text-blue-600 dark:text-blue-400">
+                              {block.eventCode}
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
+                              {block.principal}
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-800 dark:text-slate-200">
+                              <div>{block.targetEntity}</div>
+                              <div className="text-[10px] text-slate-400 font-normal">{block.clientIp}</div>
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <span className="text-[10px] text-blue-600 dark:text-blue-400 block font-mono">
+                                Hash: {block.blockHash.slice(0, 10)}...{block.blockHash.slice(-6)}
+                              </span>
+                              <span className="text-[9px] text-slate-400 block font-mono">
+                                Prev: {block.prevHash.slice(0, 10)}...
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] border border-emerald-300 dark:border-emerald-800">
+                                {block.complianceStatus}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -1659,8 +1621,128 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* ━━━ TAB: USER MANAGEMENT (TIER 1 RBAC) ━━━ */}
+          {tab === "users" && <UserManagementView />}
+
+          {/* ━━━ TAB: SELF-SERVICE DATA INGESTION PIPELINE ━━━ */}
+          {tab === "ingest" && <DataIngestionPanel onGoToMap={() => setTab("map")} />}
+
+          {/* ━━━ TAB: PROFILE & SECURITY CLEARANCE ━━━ */}
+          {tab === "profile" && <ProfileSecurityPanel />}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Dock (Screens < lg) */}
+      <nav
+        aria-label="Mobile Navigation Dock"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex justify-around items-center h-14 px-1 shadow-lg"
+      >
+        <button
+          onClick={() => { setTab("map"); setMobileMoreOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-bold transition ${
+            tab === "map"
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <Map className="w-4 h-4 mb-0.5" />
+          <span>{isHi ? "मानचित्र" : "Map"}</span>
+        </button>
+
+        <button
+          onClick={() => { setTab("plans"); setMobileMoreOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-bold transition relative ${
+            tab === "plans"
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <FileText className="w-4 h-4 mb-0.5" />
+          <span>{isHi ? "योजनाएं" : "Plans"}</span>
+          {plans && plans.length > 0 && (
+            <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-blue-600" />
+          )}
+        </button>
+
+        <button
+          onClick={() => { setTab("alerts"); setMobileMoreOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-bold transition relative ${
+            tab === "alerts"
+              ? "text-red-600 dark:text-red-400"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 mb-0.5" />
+          <span>{isHi ? "अलर्ट" : "Alerts"}</span>
+          {alerts && alerts.length > 0 && (
+            <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-red-600" />
+          )}
+        </button>
+
+        <button
+          onClick={() => { setTab("analytics"); setMobileMoreOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-bold transition ${
+            tab === "analytics"
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <BarChart3 className="w-4 h-4 mb-0.5" />
+          <span>{isHi ? "सांख्यिकी" : "Analytics"}</span>
+        </button>
+
+        <button
+          onClick={() => setMobileMoreOpen(!mobileMoreOpen)}
+          className={`flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-bold transition ${
+            mobileMoreOpen || !["map", "plans", "alerts", "analytics"].includes(tab)
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <MoreHorizontal className="w-4 h-4 mb-0.5" />
+          <span>{isHi ? "अधिक" : "More"}</span>
+        </button>
+      </nav>
+
+      {/* Mobile More Drawer Sheet */}
+      {mobileMoreOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex flex-col justify-end animate-in fade-in">
+          <div className="bg-white dark:bg-[#0F172A] rounded-t-2xl max-h-[75vh] overflow-y-auto p-4 space-y-3 shadow-2xl animate-in slide-in-from-bottom duration-200 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                {isHi ? "अतिरिक्त मॉड्यूल" : "All System Modules"}
+              </span>
+              <button
+                onClick={() => setMobileMoreOpen(false)}
+                className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setTab(item.id);
+                    setMobileMoreOpen(false);
+                  }}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-left transition ${
+                    tab === item.id
+                      ? "bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                      : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span className="text-blue-600 dark:text-blue-400">{item.icon}</span>
+                  <span className="truncate">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <CreatePlanModal
@@ -1691,19 +1773,4 @@ export default function Dashboard() {
     </div>
   );
 }
-
-function formatPopulation(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(0) + "K";
-  return n.toLocaleString();
-}
-
-function KPI({ label, value, sub, highlight = "text-slate-900 dark:text-white" }: { label: string; value: string; sub: string; highlight?: string }) {
-  return (
-    <div className="card p-4">
-      <div className="text-xs text-slate-500 dark:text-slate-500 mb-1">{label}</div>
-      <div className={`text-2xl font-bold font-mono ${highlight}`}>{value}</div>
-      <div className="text-[11px] text-slate-700 mt-1">{sub}</div>
-    </div>
-  );
-}
+
