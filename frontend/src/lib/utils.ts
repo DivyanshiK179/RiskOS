@@ -11,7 +11,16 @@ export function hazardBadgeClass(level: HazardLevel): string {
   }
 }
 
-export function hazardLabel(level: HazardLevel): string {
+export function hazardLabel(level: HazardLevel, lang: "en" | "hi" = "en"): string {
+  if (lang === "hi") {
+    switch (level) {
+      case "RED": return "लाल क्षेत्र";
+      case "HIGH": return "उच्च जोखिम";
+      case "MODERATE": return "मध्यम";
+      case "SAFE": return "सुरक्षित";
+      default: return level;
+    }
+  }
   switch (level) {
     case "RED": return "Red Zone";
     case "HIGH": return "High Risk";
@@ -23,11 +32,11 @@ export function hazardLabel(level: HazardLevel): string {
 
 export function statusBadgeClass(status: PlanStatus): string {
   switch (status) {
-    case "PROPOSED": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-slate-800 text-slate-300 border border-slate-700";
+    case "PROPOSED": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700";
     case "APPROVED": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-blue-950 text-blue-400 border border-blue-800/60";
     case "IN_PROGRESS": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-yellow-950 text-yellow-400 border border-yellow-800/60";
     case "COMPLETED": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-green-950 text-green-400 border border-green-800/60";
-    default: return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-slate-800 text-slate-400";
+    default: return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-slate-800 text-slate-600 dark:text-slate-400";
   }
 }
 
@@ -44,8 +53,8 @@ export function priorityBadgeClass(priority: string): string {
   switch (priority) {
     case "IMMEDIATE": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-red-950 text-red-400 border border-red-800/60";
     case "SHORT_TERM": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-orange-950 text-orange-400 border border-orange-800/60";
-    case "MEDIUM_TERM": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-slate-800 text-slate-300 border border-slate-700";
-    default: return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-slate-800 text-slate-300";
+    case "MEDIUM_TERM": return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700";
+    default: return "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase bg-slate-800 text-slate-700 dark:text-slate-300";
   }
 }
 

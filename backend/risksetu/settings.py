@@ -18,20 +18,49 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
 
-# 1. The custom OSGeo4W path from your screenshot
-import os
+# Configure GDAL & GEOS for Windows
 if os.name == "nt":
-    OSGEO4W = r"C:\Users\adity\AppData\Local\Programs\OSGeo4W"
-    try:
-        os.add_dll_directory(os.path.join(OSGEO4W, 'bin'))
-    except:
-        pass
-    os.environ['OSGEO4W_ROOT'] = OSGEO4W
-    os.environ['GDAL_DATA'] = os.path.join(OSGEO4W, 'share', 'gdal')
-    os.environ['PROJ_LIB'] = os.path.join(OSGEO4W, 'share', 'proj')
-    os.environ['PATH'] = os.path.join(OSGEO4W, 'bin') + ';' + os.environ.get('PATH', '')
-    GDAL_LIBRARY_PATH = os.path.join(OSGEO4W, 'bin', 'gdal313.dll')
-    GEOS_LIBRARY_PATH = os.path.join(OSGEO4W, 'bin', 'geos_c.dll')
+    import glob, sys
+    venv_libs = os.path.join(sys.prefix, 'Lib', 'site-packages', 'pyogrio.libs')
+    gdal_candidates = glob.glob(os.path.join(venv_libs, 'gdal*.dll')) if os.path.exists(venv_libs) else []
+    geos_candidates = glob.glob(os.path.join(venv_libs, 'geos_c*.dll')) if os.path.exists(venv_libs) else []
+    
+    if gdal_candidates and geos_candidates:
+        try:
+            os.add_dll_directory(venv_libs)
+        except Exception:
+            pass
+        os.environ['PATH'] = venv_libs + ';' + os.environ.get('PATH', '')
+        GDAL_LIBRARY_PATH = gdal_candidates[0]
+        GEOS_LIBRARY_PATH = geos_candidates[0]
+        
+        # PROJ and GDAL data files
+        proj_dir = os.path.join(sys.prefix, 'Lib', 'site-packages', 'pyproj', 'proj_dir', 'share', 'proj')
+        if os.path.exists(proj_dir):
+            os.environ['PROJ_LIB'] = proj_dir
+        gdal_dir = os.path.join(sys.prefix, 'Lib', 'site-packages', 'rasterio', 'gdal_data')
+        if os.path.exists(gdal_dir):
+            os.environ['GDAL_DATA'] = gdal_dir
+    else:
+        # Fallback to standard OSGeo4W paths
+        for root in [os.environ.get('OSGEO4W_ROOT', ''), r'C:\OSGeo4W', os.path.expandvars(r'%LOCALAPPDATA%\Programs\OSGeo4W')]:
+            if root and os.path.exists(root):
+                bin_dir = os.path.join(root, 'bin')
+                try:
+                    os.add_dll_directory(bin_dir)
+                except Exception:
+                    pass
+                os.environ['OSGEO4W_ROOT'] = root
+                os.environ['GDAL_DATA'] = os.path.join(root, 'share', 'gdal')
+                os.environ['PROJ_LIB'] = os.path.join(root, 'share', 'proj')
+                os.environ['PATH'] = bin_dir + ';' + os.environ.get('PATH', '')
+                dlls = glob.glob(os.path.join(bin_dir, 'gdal*.dll'))
+                if dlls:
+                    GDAL_LIBRARY_PATH = dlls[0]
+                geos = os.path.join(bin_dir, 'geos_c.dll')
+                if os.path.exists(geos):
+                    GEOS_LIBRARY_PATH = geos
+                break
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/

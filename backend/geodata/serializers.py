@@ -42,6 +42,29 @@ class HabitationSerializer(GeoFeatureModelSerializer):
 
 class SafeSiteSerializer(GeoFeatureModelSerializer):
     remaining_capacity = serializers.IntegerField(read_only=True)
+    facility_type = serializers.SerializerMethodField()
+    emergency_contact = serializers.SerializerMethodField()
+    officer_in_charge = serializers.SerializerMethodField()
+
+    def get_facility_type(self, obj):
+        name_lower = obj.name.lower()
+        if any(w in name_lower for w in ["emergency", "hospital", "medical", "clinic", "health"]):
+            return "health"
+        if any(w in name_lower for w in ["school", "college", "vidyalaya", "campus", "inter"]):
+            return "school"
+        if any(w in name_lower for w in ["army", "helipad", "air", "airstrip", "heli"]):
+            return "helipad"
+        if any(w in name_lower for w in ["transit", "depot", "food", "fci", "ration", "supply"]):
+            return "ration"
+        if any(w in name_lower for w in ["beacon", "siren", "radar", "tower", "warning"]):
+            return "siren"
+        return "shelter"
+
+    def get_emergency_contact(self, obj):
+        return f"DEOC Control Room ({obj.district}) • Toll-Free 1077 / 112"
+
+    def get_officer_in_charge(self, obj):
+        return f"District Disaster Management Officer ({obj.district})"
 
     class Meta:
         model = SafeSite
@@ -49,7 +72,8 @@ class SafeSiteSerializer(GeoFeatureModelSerializer):
         fields = (
             "id", "name", "district", "available_area_hectares",
             "estimated_capacity", "current_occupied", "remaining_capacity",
-            "hazard_score", "road_access", "water_availability",
+            "hazard_score", "road_access", "water_availability", "facility_type",
+            "emergency_contact", "officer_in_charge",
         )
 
 

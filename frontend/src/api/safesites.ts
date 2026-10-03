@@ -1,8 +1,8 @@
 import client from "./client";
 import type { SafeSiteGeoJSON } from "../types";
 
-export async function getSafeSites(): Promise<SafeSiteGeoJSON> {
-  const res = await client.get<SafeSiteGeoJSON>("/geodata/safesites/");
+export async function getSafeSites(params?: { district?: string; type?: string }): Promise<SafeSiteGeoJSON> {
+  const res = await client.get<SafeSiteGeoJSON>("/geodata/safesites/", { params });
   return res.data;
 }
 

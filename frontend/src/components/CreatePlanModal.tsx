@@ -4,7 +4,8 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { getHabitations } from "../api/habitations";
 import { getSafeSites } from "../api/safesites";
 import { createRelocationPlan } from "../api/relocation";
-import type { PriorityLevel } from "../types";
+import type { PriorityLevel, SafeSiteGeoJSON } from "../types";
+import { useTranslation } from "../i18n/translations";
 
 interface CreatePlanModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function CreatePlanModal({
   preselectedSafeSiteId,
   defaultPopulation = 0,
 }: CreatePlanModalProps) {
+  const { t } = useTranslation();
   const [habitationId, setHabitationId] = useState<string>(preselectedHabitationId?.toString() ?? "");
   const [safeSiteId, setSafeSiteId] = useState<string>(preselectedSafeSiteId?.toString() ?? "");
   const [population, setPopulation] = useState<string>(defaultPopulation?.toString() ?? "");
@@ -43,9 +45,9 @@ export default function CreatePlanModal({
     queryFn: () => getHabitations({}),
     enabled: isOpen,
   });
-  const { data: sitesData } = useQuery({
+  const { data: sitesData } = useQuery<SafeSiteGeoJSON>({
     queryKey: ["safe-sites"],
-    queryFn: getSafeSites,
+    queryFn: () => getSafeSites(),
     enabled: isOpen,
   });
 
@@ -70,14 +72,14 @@ export default function CreatePlanModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-[#0a1220] border border-slate-800 rounded-xl shadow-2xl animate-slide-up"
+        className="w-full max-w-md bg-white dark:bg-[#0a1220] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">Create relocation plan</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Document an official evacuation operation</p>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t("Create Relocation Plan")}</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">{t("Manage evacuation and rehabilitation operations")}</p>
           </div>
           <button onClick={onClose} className="btn-ghost p-1.5">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -89,24 +91,24 @@ export default function CreatePlanModal({
         {/* Body */}
         <div className="p-5 space-y-4">
           <div>
-            <label className="label">At-risk settlement</label>
+            <label className="label">{t("Target Habitation")}</label>
             <select value={habitationId} onChange={(e) => setHabitationId(e.target.value)} className="select">
-              <option value="">Select settlement...</option>
+              <option value="">{t("search_placeholder")}</option>
               {habsData?.features.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.properties.name} — {f.properties.district}
+                  {f.properties.name} — {t(f.properties.district)}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="label">Destination safe site</label>
+            <label className="label">{t("Assigned Safe Site")}</label>
             <select value={safeSiteId} onChange={(e) => setSafeSiteId(e.target.value)} className="select">
-              <option value="">Select safe site...</option>
-              {sitesData?.features.map((f) => (
+              <option value="">{t("search_placeholder")}</option>
+              {sitesData?.features?.map((f: any) => (
                 <option key={f.id} value={f.id}>
-                  {f.properties.name} — capacity: {(f.properties.remaining_capacity ?? f.properties.estimated_capacity).toLocaleString()}
+                  {f.properties.name} — {t("Capacity:")} {(f.properties.remaining_capacity ?? f.properties.estimated_capacity).toLocaleString()}
                 </option>
               ))}
             </select>
@@ -114,60 +116,52 @@ export default function CreatePlanModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Population to relocate</label>
+              <label className="label">{t("Population to Relocate")}</label>
               <input
                 type="number"
                 min="1"
                 value={population}
                 onChange={(e) => setPopulation(e.target.value)}
                 className="input"
-                placeholder="e.g. 250"
+                placeholder="250"
               />
             </div>
             <div>
-              <label className="label">Priority</label>
+              <label className="label">{t("Priority Level")}</label>
               <select value={priority} onChange={(e) => setPriority(e.target.value as PriorityLevel)} className="select">
-                <option value="IMMEDIATE">Immediate</option>
-                <option value="SHORT_TERM">Short-term</option>
-                <option value="MEDIUM_TERM">Medium-term</option>
+                <option value="IMMEDIATE">{t("IMMEDIATE")}</option>
+                <option value="SHORT_TERM">{t("URGENT")}</option>
+                <option value="MEDIUM_TERM">{t("ROUTINE")}</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="label">Notes / justification</label>
+            <label className="label">{t("Operational Notes")}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="input min-h-[80px] resize-none"
-              placeholder="Describe the reasoning for this relocation plan..."
+              placeholder="..."
             />
           </div>
 
           {create.isError && (
-            <div className="p-3 bg-red-950/40 border border-red-900/50 rounded text-xs text-red-400">
-              Failed to create plan. Please check all fields and try again.
+            <div className="p-3 bg-red-100 dark:bg-red-950/40 border border-red-300 dark:border-red-900/50 rounded text-xs text-red-700 dark:text-red-400">
+              {t("Failed to create plan. Please check all fields and try again.")}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-800">
-          <button onClick={onClose} className="btn-ghost text-sm">Cancel</button>
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-800">
+          <button onClick={onClose} className="btn-ghost text-sm">{t("cancel")}</button>
           <button
             onClick={() => create.mutate()}
             disabled={!habitationId || !safeSiteId || !population || create.isPending}
             className="btn-primary text-sm"
           >
-            {create.isPending ? (
-              <>
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-                Saving...
-              </>
-            ) : "Save plan"}
+            {create.isPending ? t("Creating...") : t("Create Relocation Plan")}
           </button>
         </div>
       </div>
