@@ -14,7 +14,6 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
-  Map as MapIcon,
   Ruler,
   Navigation,
   Crosshair,
@@ -58,7 +57,14 @@ interface MapViewProps {
   initialFacility?: string;
 }
 
-type BasemapType = "satellite" | "street" | "topo" | "bhuvan";
+export type BasemapType = "satellite" | "streets" | "street" | "topo" | "bhuvan";
+
+export const BASEMAP_OPTIONS = [
+  { id: "bhuvan", label: "ISRO Bhuvan", icon: "🛰️", hiLabel: "इसरो भुवन" },
+  { id: "satellite", label: "Satellite Hybrid", icon: "🛰️", hiLabel: "उपग्रह हाइब्रिड" },
+  { id: "topo", label: "Topographic", icon: "🗺️", hiLabel: "स्थलाकृतिक" },
+  { id: "streets", label: "Street Map", icon: "🛣️", hiLabel: "सड़क मानचित्र" },
+];
 
 export const BASEMAPS = {
   satellite: {
@@ -215,6 +221,7 @@ export default function MapView({
   initialFacility,
 }: MapViewProps) {
   const { t, lang } = useTranslation();
+  const isHi = lang === "hi";
   const {
     theme,
     layersCollapsed,
@@ -252,8 +259,12 @@ export default function MapView({
   const safeSitesRef = useRef<any>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("satellite");
+  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("bhuvan");
   const [basemapDropdownOpen, setBasemapDropdownOpen] = useState(false);
+
+  const currentOption = BASEMAP_OPTIONS.find(
+    (b) => b.id === activeBasemap || (b.id === "streets" && activeBasemap === "street")
+  ) || BASEMAP_OPTIONS[0];
 
   // Grouped Hazard & Infrastructure Layer Toggles
   const [showHabs, setShowHabs] = useState(true);
@@ -1181,7 +1192,7 @@ export default function MapView({
             source: "esri-satellite",
             minzoom: 0,
             maxzoom: 22,
-            layout: { visibility: "visible" },
+            layout: { visibility: activeBasemap === "satellite" ? "visible" : "none" },
           },
           {
             id: "base-street-light",
@@ -1189,7 +1200,7 @@ export default function MapView({
             source: "carto-street-light",
             minzoom: 0,
             maxzoom: 22,
-            layout: { visibility: "none" },
+            layout: { visibility: (activeBasemap === "streets" || activeBasemap === "street") && theme !== "dark" ? "visible" : "none" },
           },
           {
             id: "base-street-dark",
@@ -1197,7 +1208,7 @@ export default function MapView({
             source: "carto-street-dark",
             minzoom: 0,
             maxzoom: 22,
-            layout: { visibility: "none" },
+            layout: { visibility: (activeBasemap === "streets" || activeBasemap === "street") && theme === "dark" ? "visible" : "none" },
           },
           {
             id: "base-topo",
@@ -1205,7 +1216,7 @@ export default function MapView({
             source: "open-topo",
             minzoom: 0,
             maxzoom: 22,
-            layout: { visibility: "none" },
+            layout: { visibility: activeBasemap === "topo" ? "visible" : "none" },
           },
           {
             id: "base-bhuvan",
@@ -1213,7 +1224,7 @@ export default function MapView({
             source: "bhuvan-basemap",
             minzoom: 0,
             maxzoom: 22,
-            layout: { visibility: "none" },
+            layout: { visibility: activeBasemap === "bhuvan" ? "visible" : "none" },
           },
           {
             id: "base-labels",
@@ -1689,8 +1700,9 @@ export default function MapView({
   }, [selectedHabitationId, mapLoaded, habitationsData, showSettlementPopup]);
 
   // Update Basemap Provider
-  const switchBasemap = (type: BasemapType) => {
-    setActiveBasemap(type);
+  const switchBasemap = (type: BasemapType | string) => {
+    const targetType = type as BasemapType;
+    setActiveBasemap(targetType);
     setBasemapDropdownOpen(false);
     if (!mapRef.current) return;
 
@@ -1704,7 +1716,7 @@ export default function MapView({
       if (m.getLayer("base-street-dark")) m.setLayoutProperty("base-street-dark", "visibility", "none");
       if (m.getLayer("base-topo")) m.setLayoutProperty("base-topo", "visibility", "none");
       if (m.getLayer("base-bhuvan")) m.setLayoutProperty("base-bhuvan", "visibility", "none");
-    } else if (type === "street") {
+    } else if (type === "street" || type === "streets") {
       if (m.getLayer("base-satellite")) m.setLayoutProperty("base-satellite", "visibility", "none");
       if (m.getLayer("base-labels")) m.setLayoutProperty("base-labels", "visibility", "none");
       if (m.getLayer("base-street-light")) m.setLayoutProperty("base-street-light", "visibility", isDark ? "none" : "visible");
@@ -2087,61 +2099,44 @@ export default function MapView({
             <button
               onClick={() => setBasemapDropdownOpen(!basemapDropdownOpen)}
               className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 text-xs font-semibold rounded-xl bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
+              title={`Active Basemap: ${currentOption.label}`}
+              aria-label="Basemap Selector Trigger"
             >
-              <MapIcon className="w-4 h-4 text-blue-400" />
-              <span className="hidden sm:inline">{activeBasemap === "satellite" ? t("map.satelliteHybrid") : activeBasemap === "street" ? t("map.streetMap") : activeBasemap === "topo" ? t("map.topoMap") : t("map.bhuvanMap")}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-sm">{currentOption.icon}</span>
+              <span className="hidden sm:inline font-bold">
+                {isHi ? currentOption.hiLabel : currentOption.label}
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${basemapDropdownOpen ? "rotate-180" : ""}`} />
             </button>
 
             {basemapDropdownOpen && (
               <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-2xl p-2 z-40 space-y-1 text-xs">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1 block">
-                  {t("basemap_title")}
+                  {isHi ? "आधार मानचित्र का चयन" : "Select Basemap Layer"}
                 </span>
-                <button
-                  onClick={() => { switchBasemap("satellite"); setBasemapDropdownOpen(false); }}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                    activeBasemap === "satellite"
-                      ? "bg-blue-600 text-white font-bold"
-                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <span>🛰️ {t("map.satelliteHybrid")}</span>
-                  {activeBasemap === "satellite" && <span className="text-[10px]">✓</span>}
-                </button>
-                <button
-                  onClick={() => { switchBasemap("street"); setBasemapDropdownOpen(false); }}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                    activeBasemap === "street"
-                      ? "bg-blue-600 text-white font-bold"
-                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <span>🗺️ {t("map.streetMap")}</span>
-                  {activeBasemap === "street" && <span className="text-[10px]">✓</span>}
-                </button>
-                <button
-                  onClick={() => { switchBasemap("topo"); setBasemapDropdownOpen(false); }}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                    activeBasemap === "topo"
-                      ? "bg-blue-600 text-white font-bold"
-                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <span>⛰️ {t("map.topoMap")}</span>
-                  {activeBasemap === "topo" && <span className="text-[10px]">✓</span>}
-                </button>
-                <button
-                  onClick={() => { switchBasemap("bhuvan"); setBasemapDropdownOpen(false); }}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                    activeBasemap === "bhuvan"
-                      ? "bg-blue-600 text-white font-bold"
-                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <span>🛰️ {t("map.bhuvanMap")}</span>
-                  {activeBasemap === "bhuvan" && <span className="text-[10px]">✓</span>}
-                </button>
+                {BASEMAP_OPTIONS.map((opt) => {
+                  const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        switchBasemap(opt.id as BasemapType);
+                        setBasemapDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
+                        isSelected
+                          ? "bg-blue-600 text-white font-bold"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>{opt.icon}</span>
+                        <span>{isHi ? opt.hiLabel : opt.label}</span>
+                      </span>
+                      {isSelected && <span className="text-[10px]">✓</span>}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2512,6 +2507,47 @@ export default function MapView({
 
             {activeLayerTab === "layers" ? (
               <div className="space-y-3">
+                {/* Basemap Provider Selector Cards */}
+                <div className="space-y-1.5 pb-2.5 border-b border-slate-200 dark:border-slate-700/60">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                      {isHi ? "आधार मानचित्र (Basemap)" : "Basemap Provider"}
+                    </span>
+                    <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 font-mono">
+                      {currentOption.icon} {isHi ? currentOption.hiLabel : currentOption.label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {BASEMAP_OPTIONS.map((opt) => {
+                      const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => switchBasemap(opt.id as BasemapType)}
+                          className={`group relative flex items-center gap-2 p-1.5 rounded-lg border text-left transition-all ${
+                            isSelected
+                              ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/50 opacity-100 shadow-xs"
+                              : "border-slate-200 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-800/60"
+                          }`}
+                          title={isHi ? opt.hiLabel : opt.label}
+                          aria-label={opt.label}
+                        >
+                          <span className="text-base flex-shrink-0">{opt.icon}</span>
+                          <div className="min-w-0 flex-1">
+                            <span className={`text-[10px] font-bold block truncate leading-tight ${isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"}`}>
+                              {isHi ? opt.hiLabel : opt.label}
+                            </span>
+                            <span className="text-[8.5px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-mono">
+                              {opt.id}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* 1. Core Settlements & Safe Shelters */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
@@ -2633,50 +2669,39 @@ export default function MapView({
         </div>
       )}
 
-      {/* Basemap Quick-Preview Thumb (Bottom Right, BharatMaps Style) */}
+      {/* Basemap Quick-Preview Thumb Cards (Bottom Right, BharatMaps Style) */}
       <div className="absolute bottom-10 right-4 z-20">
-        <button
-          onClick={() => {
-            const nextMap: Record<BasemapType, BasemapType> = {
-              satellite: "street",
-              street: "topo",
-              topo: "bhuvan",
-              bhuvan: "satellite",
-            };
-            switchBasemap(nextMap[activeBasemap]);
-          }}
-          className="group relative flex flex-col items-center p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border-2 border-white dark:border-slate-700 rounded-xl shadow-2xl hover:scale-105 transition-all overflow-hidden"
-          title={`Switch basemap (current: ${activeBasemap})`}
-          aria-label="Switch basemap view"
-        >
-          <div className="w-14 h-14 rounded-lg overflow-hidden relative flex items-center justify-center bg-slate-800 text-white font-bold text-[10px] shadow-inner">
-            {activeBasemap === "satellite" ? (
-              <div className="w-full h-full bg-gradient-to-br from-emerald-800 to-sky-900 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-sm">🗺️</span>
-                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Street")}</span>
-              </div>
-            ) : activeBasemap === "street" ? (
-              <div className="w-full h-full bg-gradient-to-br from-amber-700 to-stone-800 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-sm">⛰️</span>
-                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Topo")}</span>
-              </div>
-            ) : activeBasemap === "topo" ? (
-              <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-950 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-sm">🛰️</span>
-                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Bhuvan")}</span>
-              </div>
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-slate-900 to-emerald-950 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-sm">🛰️</span>
-                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Satellite")}</span>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition" />
-          </div>
-          <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5 tracking-wider uppercase">
-            {activeBasemap === "satellite" ? t("Street") : activeBasemap === "street" ? t("Topo") : activeBasemap === "topo" ? t("Bhuvan") : t("Satellite")}
-          </span>
-        </button>
+        <div className="flex items-center gap-1.5 p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-2xl">
+          {BASEMAP_OPTIONS.map((opt) => {
+            const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => switchBasemap(opt.id as BasemapType)}
+                className={`relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border transition-all ${
+                  isSelected
+                    ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md scale-102"
+                    : "border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50/80 dark:bg-slate-800/80"
+                }`}
+                title={`Select ${isHi ? opt.hiLabel : opt.label}`}
+                aria-label={opt.label}
+              >
+                <div className="w-full flex-1 flex items-center justify-center">
+                  <span className="text-base select-none">{opt.icon}</span>
+                </div>
+                {/* Single legible badge/label beneath the icon (no duplicated text) */}
+                <span
+                  className={`text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight ${
+                    isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {opt.id === "bhuvan" ? "BHUVAN" : opt.id === "satellite" ? "SATELLITE" : opt.id === "topo" ? "TOPO" : "STREETS"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* RiskOS Clean Bottom Status Ribbon */}
