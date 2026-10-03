@@ -100,6 +100,7 @@ export interface SafeSiteFeatureProperties {
   hazard_score: number;
   road_access: boolean;
   water_availability: boolean;
+  facility_type?: string;
 }
 
 export interface SafeSiteFeature {

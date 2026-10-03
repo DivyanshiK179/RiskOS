@@ -2,8 +2,32 @@ import client from "./client";
 import type { SafeSiteGeoJSON } from "../types";
 
 export async function getSafeSites(params?: { district?: string; type?: string }): Promise<SafeSiteGeoJSON> {
-  const res = await client.get<SafeSiteGeoJSON>("/geodata/safesites/", { params });
-  return res.data;
+  try {
+    const res = await client.get<SafeSiteGeoJSON>("/geodata/safesites/", { params });
+    if (res.data?.features && res.data.features.length > 0) {
+      return res.data;
+    }
+    throw new Error("No safe site features returned from backend");
+  } catch (err) {
+    console.warn("Live safe sites backend query failed/unreachable. Loading authoritative offline GeoJSON layer:", err);
+    try {
+      const fallback = await fetch("/data/safesites.json");
+      if (!fallback.ok) throw new Error(`HTTP error ${fallback.status}`);
+      const data: SafeSiteGeoJSON = await fallback.json();
+      if (params?.district || params?.type) {
+        const filteredFeatures = data.features.filter((f) => {
+          if (params.district && f.properties.district?.toLowerCase() !== params.district.toLowerCase()) return false;
+          if (params.type && f.properties.facility_type !== params.type) return false;
+          return true;
+        });
+        return { ...data, features: filteredFeatures };
+      }
+      return data;
+    } catch (fallbackErr) {
+      console.error("Failed to load static safe sites dataset:", fallbackErr);
+      throw err;
+    }
+  }
 }
 
 export async function createSafeSite(data: {
