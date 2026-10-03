@@ -2527,55 +2527,6 @@ export default function MapView({
 
             {activeLayerTab === "layers" ? (
               <div className="space-y-3">
-                {/* Basemap Provider Selector Cards (As was in the starting) */}
-                <div className="space-y-1.5 pb-2.5 border-b border-slate-200 dark:border-slate-700/60">
-                  <div className="flex items-center justify-between px-0.5">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                      {isHi ? "आधार मानचित्र (Basemap)" : "BASEMAP PROVIDER"}
-                    </span>
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-sky-400 font-mono uppercase tracking-wider">
-                      {isHi ? currentOption.hiLabel : (activeBasemap === "streets" || activeBasemap === "street" ? "STREET MAP" : currentOption.label.toUpperCase())}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {BASEMAP_OPTIONS.map((opt) => {
-                      const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-                      const subtitleTag =
-                        opt.id === "bhuvan"
-                          ? "BHUVAN"
-                          : opt.id === "satellite"
-                          ? "SATELLITE"
-                          : opt.id === "topo"
-                          ? "TOPO"
-                          : "STREETS";
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => switchBasemap(opt.id as BasemapType)}
-                          className={`group relative flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                            isSelected
-                              ? "border-2 border-blue-500 ring-1 ring-blue-500/50 bg-blue-50/70 dark:bg-[#162038] text-slate-900 dark:text-white shadow-sm"
-                              : "border-slate-200 dark:border-[#20304c] bg-white dark:bg-[#162038] text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-600"
-                          }`}
-                          title={isHi ? opt.hiLabel : opt.label}
-                          aria-label={opt.label}
-                        >
-                          <span className="text-lg flex-shrink-0">{opt.icon}</span>
-                          <div className="min-w-0 flex-1">
-                            <span className={`text-[11px] font-bold block truncate leading-tight ${isSelected ? "text-blue-700 dark:text-white font-extrabold" : "text-slate-800 dark:text-slate-200"}`}>
-                              {isHi ? opt.hiLabel : opt.label}
-                            </span>
-                            <span className="text-[8.5px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-mono mt-0.5">
-                              {subtitleTag}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
                 {/* 1. Core Settlements & Safe Shelters */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
