@@ -2527,6 +2527,55 @@ export default function MapView({
 
             {activeLayerTab === "layers" ? (
               <div className="space-y-3">
+                {/* Basemap Provider Selector Cards (As was in the starting) */}
+                <div className="space-y-1.5 pb-2.5 border-b border-slate-200 dark:border-slate-700/60">
+                  <div className="flex items-center justify-between px-0.5">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                      {isHi ? "आधार मानचित्र (Basemap)" : "BASEMAP PROVIDER"}
+                    </span>
+                    <span className="text-[10px] font-bold text-blue-600 dark:text-sky-400 font-mono uppercase tracking-wider">
+                      {isHi ? currentOption.hiLabel : (activeBasemap === "streets" || activeBasemap === "street" ? "STREET MAP" : currentOption.label.toUpperCase())}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {BASEMAP_OPTIONS.map((opt) => {
+                      const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+                      const subtitleTag =
+                        opt.id === "bhuvan"
+                          ? "BHUVAN"
+                          : opt.id === "satellite"
+                          ? "SATELLITE"
+                          : opt.id === "topo"
+                          ? "TOPO"
+                          : "STREETS";
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => switchBasemap(opt.id as BasemapType)}
+                          className={`group relative flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? "border-2 border-blue-500 ring-1 ring-blue-500/50 bg-blue-50/70 dark:bg-[#162038] text-slate-900 dark:text-white shadow-sm"
+                              : "border-slate-200 dark:border-[#20304c] bg-white dark:bg-[#162038] text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-600"
+                          }`}
+                          title={isHi ? opt.hiLabel : opt.label}
+                          aria-label={opt.label}
+                        >
+                          <span className="text-lg flex-shrink-0">{opt.icon}</span>
+                          <div className="min-w-0 flex-1">
+                            <span className={`text-[11px] font-bold block truncate leading-tight ${isSelected ? "text-blue-700 dark:text-white font-extrabold" : "text-slate-800 dark:text-slate-200"}`}>
+                              {isHi ? opt.hiLabel : opt.label}
+                            </span>
+                            <span className="text-[8.5px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-mono mt-0.5">
+                              {subtitleTag}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* 1. Core Settlements & Safe Shelters */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
@@ -2648,51 +2697,51 @@ export default function MapView({
         </div>
       )}
 
-      {/* Basemap Selection Cards (Bottom Right, Structured 2x2 Grid) */}
+      {/* Basemap Quick-Preview Thumb (Bottom Right, BharatMaps Style) */}
       <div className="absolute bottom-10 right-4 z-20">
-        <div className="p-2 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-2xl">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1 flex items-center justify-between">
-            <span>{isHi ? "आधार मानचित्र" : "BASEMAP PROVIDER"}</span>
-            <span className="text-blue-400 font-mono text-[9px] font-semibold">{currentOption.label}</span>
+        <button
+          onClick={() => {
+            const nextMap: Record<BasemapType, BasemapType> = {
+              satellite: "street",
+              street: "topo",
+              streets: "topo",
+              topo: "bhuvan",
+              bhuvan: "satellite",
+            };
+            switchBasemap(nextMap[activeBasemap] || "satellite");
+          }}
+          className="group relative flex flex-col items-center p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border-2 border-white dark:border-slate-700 rounded-xl shadow-2xl hover:scale-105 transition-all overflow-hidden"
+          title={`Switch basemap (current: ${activeBasemap})`}
+          aria-label="Switch basemap view"
+        >
+          <div className="w-14 h-14 rounded-lg overflow-hidden relative flex items-center justify-center bg-slate-800 text-white font-bold text-[10px] shadow-inner">
+            {activeBasemap === "satellite" ? (
+              <div className="w-full h-full bg-gradient-to-br from-emerald-800 to-sky-900 flex flex-col items-center justify-center p-1 text-center">
+                <span className="text-sm">🗺️</span>
+                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Street")}</span>
+              </div>
+            ) : activeBasemap === "street" || activeBasemap === "streets" ? (
+              <div className="w-full h-full bg-gradient-to-br from-amber-700 to-stone-800 flex flex-col items-center justify-center p-1 text-center">
+                <span className="text-sm">⛰️</span>
+                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Topo")}</span>
+              </div>
+            ) : activeBasemap === "topo" ? (
+              <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-950 flex flex-col items-center justify-center p-1 text-center">
+                <span className="text-sm">🛰️</span>
+                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Bhuvan")}</span>
+              </div>
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-slate-900 to-emerald-950 flex flex-col items-center justify-center p-1 text-center">
+                <span className="text-sm">🛰️</span>
+                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Satellite")}</span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition" />
           </div>
-          <div className="grid grid-cols-2 gap-2 w-72">
-            {BASEMAP_OPTIONS.map((opt) => {
-              const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-              const subtitleTag =
-                opt.id === "bhuvan"
-                  ? "BHUVAN"
-                  : opt.id === "satellite"
-                  ? "SATELLITE"
-                  : opt.id === "topo"
-                  ? "TOPO"
-                  : "STREETS";
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => switchBasemap(opt.id as BasemapType)}
-                  className={`flex items-center gap-2.5 rounded-xl p-2.5 text-left transition-all ${
-                    isSelected
-                      ? "border-2 border-blue-500 bg-blue-500/10 text-white font-medium shadow-md"
-                      : "border border-slate-700/80 bg-slate-800/60 hover:bg-slate-800 hover:border-slate-600 rounded-xl p-2.5 text-slate-300"
-                  }`}
-                  title={`Select ${isHi ? opt.hiLabel : opt.label}`}
-                  aria-label={opt.label}
-                >
-                  <span className="text-xl flex-shrink-0">{opt.icon}</span>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-xs font-semibold block truncate leading-tight">
-                      {isHi ? opt.hiLabel : opt.label}
-                    </span>
-                    <span className="text-[9px] text-slate-400 block uppercase tracking-wider font-mono">
-                      {subtitleTag}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+          <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5 tracking-wider uppercase">
+            {activeBasemap === "satellite" ? t("Street") : activeBasemap === "street" || activeBasemap === "streets" ? t("Topo") : activeBasemap === "topo" ? t("Bhuvan") : t("Satellite")}
+          </span>
+        </button>
       </div>
 
       {/* RiskOS Clean Bottom Status Ribbon */}
