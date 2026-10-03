@@ -439,18 +439,87 @@ export default function MapView({
 
   const handleExportMapViewport = () => {
     if (!mapRef.current) return;
-    try {
-      const canvas = mapRef.current.getCanvas();
-      const dataUrl = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `riskos-map-inspection-${new Date().toISOString().slice(0, 10)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch {
-      handleExportData();
-    }
+    const map = mapRef.current;
+
+    const performExport = () => {
+      try {
+        const mapCanvas = map.getCanvas();
+        if (!mapCanvas) return;
+
+        // If there are overlaid DOM markers (e.g. simulation epicenter or target pins)
+        const container = map.getContainer();
+        const markers = container ? container.querySelectorAll<HTMLElement>(".maplibregl-marker") : [];
+
+        if (markers.length > 0) {
+          const compositeCanvas = document.createElement("canvas");
+          compositeCanvas.width = mapCanvas.width;
+          compositeCanvas.height = mapCanvas.height;
+          const ctx = compositeCanvas.getContext("2d");
+          if (ctx) {
+            // Draw base WebGL map
+            ctx.drawImage(mapCanvas, 0, 0);
+
+            // Draw overlaid DOM marker pins
+            const containerRect = container.getBoundingClientRect();
+            const scaleX = mapCanvas.width / containerRect.width;
+            const scaleY = mapCanvas.height / containerRect.height;
+
+            markers.forEach((marker) => {
+              const rect = marker.getBoundingClientRect();
+              const x = (rect.left - containerRect.left + rect.width / 2) * scaleX;
+              const y = (rect.top - containerRect.top + rect.height / 2) * scaleY;
+
+              ctx.beginPath();
+              ctx.arc(x, y, 9 * Math.min(scaleX, 2), 0, 2 * Math.PI);
+              ctx.fillStyle = "#EF4444";
+              ctx.fill();
+              ctx.lineWidth = 2.5 * Math.min(scaleX, 2);
+              ctx.strokeStyle = "#FFFFFF";
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(x, y, 16 * Math.min(scaleX, 2), 0, 2 * Math.PI);
+              ctx.lineWidth = 1.5 * Math.min(scaleX, 2);
+              ctx.strokeStyle = "rgba(239, 68, 68, 0.55)";
+              ctx.stroke();
+            });
+
+            const imageURI = compositeCanvas.toDataURL("image/png");
+            const link = document.createElement("a");
+            link.download = `riskos-map-inspection-${new Date().toISOString().split("T")[0]}.png`;
+            link.href = imageURI;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            return;
+          }
+        }
+
+        // Direct high-speed canvas export
+        const imageURI = mapCanvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = `riskos-map-inspection-${new Date().toISOString().split("T")[0]}.png`;
+        link.href = imageURI;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.error("Map viewport export error:", err);
+        handleExportData();
+      }
+    };
+
+    let executed = false;
+    const safeExport = () => {
+      if (executed) return;
+      executed = true;
+      map.off("render", safeExport);
+      performExport();
+    };
+
+    map.triggerRepaint();
+    map.once("render", safeExport);
+    setTimeout(safeExport, 150);
   };
 
   const handleExportData = () => {
