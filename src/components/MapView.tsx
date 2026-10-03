@@ -259,7 +259,7 @@ export default function MapView({
   const safeSitesRef = useRef<any>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("bhuvan");
+  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("satellite");
   const [basemapDropdownOpen, setBasemapDropdownOpen] = useState(false);
 
   const currentOption = BASEMAP_OPTIONS.find(
