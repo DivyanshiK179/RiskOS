@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X, ChevronRight, BarChart3 } from "lucide-react";
 import { getHabitations } from "../api/habitations";
@@ -15,12 +16,23 @@ import { useUIStore } from "../store/uiStore";
 import { extractCleanDistricts } from "../lib/districts";
 
 export default function PublicMap() {
+  const [searchParams] = useSearchParams();
+  const toolParam = searchParams.get("tool");
+  const layerParam = searchParams.get("layer");
+  const filterParam = searchParams.get("filter");
+
   const [districtFilter, setDistrictFilter] = useState("");
   const [hazardFilter, setHazardFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const { t, lang } = useTranslation();
-  const { inspectorCollapsed, toggleInspector, toggleLayers, toggleZenMode } = useUIStore();
+  const { inspectorCollapsed, toggleInspector, toggleLayers, toggleZenMode, setIsTargetToolActive } = useUIStore();
+
+  useEffect(() => {
+    if (toolParam === "simulation") {
+      setIsTargetToolActive(true);
+    }
+  }, [toolParam, setIsTargetToolActive]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -126,6 +138,8 @@ export default function PublicMap() {
             onToggleAnalytics={toggleInspector}
             isAnalyticsOpen={!inspectorCollapsed}
             settlementCount={features.length}
+            initialShowLandslide={layerParam === "landslide" ? true : undefined}
+            initialFacility={filterParam === "shelters" ? "shelter" : undefined}
           />
         </div>
 

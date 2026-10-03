@@ -152,17 +152,7 @@ export default function Home() {
   const slides = [
     {
       id: "slide-1",
-      title: isHi ? "उच्च-रिज़ॉल्यूशन उपग्रह एवं कैडस्ट्रल मानचित्रण" : "Multi-Basemap Satellite Hybrid & Cadastral GIS",
-      subtitle: isHi ? "इसरो भुवन, एसरी एवं ओपनस्ट्रीटमैप एकीकृत परतें" : "Integrated Esri World Imagery, OpenTopo & Cadastral Overlays",
-      badge: isHi ? "जीआईएस मानक" : "GIS Engine v3.2",
-      description: isHi
-        ? "उत्तराखंड के सभी 13 जिलों की 13,967 बस्तियों का सब-मीटर स्तर पर भू-स्थानिक विश्लेषण एवं सर्वेक्षण।"
-        : "Sub-meter geospatial inspection and statutory boundary analytics for all 13,967 habitations across 13 districts of Uttarakhand.",
-      accent: "from-[#0B2545] to-[#133E68]",
-      stats: { primary: "13,967", label: isHi ? "चिह्नित बस्तियाँ" : "Settlements Scored" }
-    },
-    {
-      id: "slide-2",
+      route: "/public-map?tool=simulation",
       title: isHi ? "आपदा परिदृश्य एवं प्रभाव त्रिज्या सिमुलेशन" : "AI Multi-Hazard Scenario Blast Simulation",
       subtitle: isHi ? "भूस्खलन, बादल फटना, जीएलओएफ एवं भूकंप प्रभाव विश्लेषण" : "Live PostGIS 3-Tier Zoning (Direct Hit, High Alert, Advisory)",
       badge: isHi ? "निर्णय समर्थन प्रणाली" : "DSS Spatial Query",
@@ -173,7 +163,20 @@ export default function Home() {
       stats: { primary: "1-50 km", label: isHi ? "गतिशील प्रभाव त्रिज्या" : "Dynamic Buffer Radius" }
     },
     {
+      id: "slide-2",
+      route: "/public-map?layer=landslide",
+      title: isHi ? "जीएसआई / एनआरएससी भूस्खलन संवेदनशीलता मॉडल" : "GSI Slope Failure & Rainfall Vulnerability Matrix",
+      subtitle: isHi ? "जोशीमठ, केदारनाथ एवं अलकनंदा घाटी उच्च जोखिम कॉरिडोर" : "Census 2026 Household Structural Vulnerability Aggregation",
+      badge: isHi ? "वैज्ञानिक मॉडल" : "Predictive AI",
+      description: isHi
+        ? "भूकंपीय ज़ोन IV/V, अत्यधिक वर्षा, नदी निकटता एवं कच्ची आवास संरचनाओं का संयुक्त जोखिम सूचकांक।"
+        : "Integrated multi-criteria risk scoring combining slope angles, precipitation anomalies, river distances, and housing conditions.",
+      accent: "from-[#312E81] to-[#4338CA]",
+      stats: { primary: "1.34M", label: isHi ? "सुरक्षित आबादी" : "Pop. Monitored" }
+    },
+    {
       id: "slide-3",
+      route: "/public-map?filter=shelters",
       title: isHi ? "स्वचालित सुरक्षित आश्रय स्थल आवंटन" : "Optimized Evacuation Corridors & Safe Shelters",
       subtitle: isHi ? "20 रणनीतिक राहत शिविर एवं वास्तविक समय मार्ग नियोजन" : "Logistics Allocation Engine Matching Capacities to Evacuees",
       badge: isHi ? "लॉजिस्टिक्स इंजन" : "Civil Protection",
@@ -185,14 +188,15 @@ export default function Home() {
     },
     {
       id: "slide-4",
-      title: isHi ? "जीएसआई / एनआरएससी भूस्खलन संवेदनशीलता मॉडल" : "GSI Slope Failure & Rainfall Vulnerability Matrix",
-      subtitle: isHi ? "जोशीमठ, केदारनाथ एवं अलकनंदा घाटी उच्च जोखिम कॉरिडोर" : "Census 2026 Household Structural Vulnerability Aggregation",
-      badge: isHi ? "वैज्ञानिक मॉडल" : "Predictive AI",
+      route: "/public-map",
+      title: isHi ? "उच्च-रिज़ॉल्यूशन उपग्रह एवं कैडस्ट्रल मानचित्रण" : "Multi-Basemap Satellite Hybrid & Cadastral GIS",
+      subtitle: isHi ? "इसरो भुवन, एसरी एवं ओपनस्ट्रीटमैप एकीकृत परतें" : "Integrated Esri World Imagery, OpenTopo & Cadastral Overlays",
+      badge: isHi ? "जीआईएस मानक" : "GIS Engine v3.2",
       description: isHi
-        ? "भूकंपीय ज़ोन IV/V, अत्यधिक वर्षा, नदी निकटता एवं कच्ची आवास संरचनाओं का संयुक्त जोखिम सूचकांक।"
-        : "Integrated multi-criteria risk scoring combining slope angles, precipitation anomalies, river distances, and housing conditions.",
-      accent: "from-[#312E81] to-[#4338CA]",
-      stats: { primary: "1.34M", label: isHi ? "सुरक्षित आबादी" : "Pop. Monitored" }
+        ? "उत्तराखंड के सभी 13 जिलों की 13,967 बस्तियों का सब-मीटर स्तर पर भू-स्थानिक विश्लेषण एवं सर्वेक्षण।"
+        : "Sub-meter geospatial inspection and statutory boundary analytics for all 13,967 habitations across 13 districts of Uttarakhand.",
+      accent: "from-[#0B2545] to-[#133E68]",
+      stats: { primary: "13,967", label: isHi ? "चिह्नित बस्तियाँ" : "Settlements Scored" }
     }
   ];
 
@@ -604,13 +608,13 @@ export default function Home() {
                         <div className="text-lg font-mono font-bold text-amber-300">{slides[activeSlide].stats.primary}</div>
                         <div className="text-[10px] uppercase tracking-wider text-white/80">{slides[activeSlide].stats.label}</div>
                       </div>
-                      <button
-                        onClick={() => handleEnterDashboard("/dashboard")}
+                      <Link
+                        to={slides[activeSlide].route || "/public-map"}
                         className="px-3.5 py-1.5 bg-white text-slate-950 hover:bg-slate-100 rounded-md text-xs font-bold flex items-center gap-1.5 shadow transition-all"
                       >
                         <span>{isHi ? "मानचित्र खोलें" : "Launch GIS"}</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
