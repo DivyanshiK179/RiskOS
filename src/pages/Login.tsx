@@ -560,7 +560,7 @@ export default function Login() {
               </div>
               <div>
                 <Link to="/" className="text-slate-600 dark:text-slate-400 hover:underline font-semibold text-[11px]">
-                  ← {lang === "hi" ? "सार्वजनिक आपदा मानचित्र पर वापस जाएं" : "Return to Public Hazard Map"}
+                  ← {lang === "hi" ? "मुख्य पृष्ठ पर वापस जाएं" : "Return to Home Page"}
                 </Link>
               </div>
             </div>
