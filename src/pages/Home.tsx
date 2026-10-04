@@ -254,11 +254,11 @@ export default function Home() {
         <GoiTopBar />
 
         {/* 2. Primary Portal Header (Full-Width 3-Zone Layout) */}
-        <div className="w-full max-w-[100vw] px-2 sm:px-3 lg:px-4 xl:px-6 2xl:px-8 mx-auto h-18 min-h-[72px] flex flex-nowrap items-center justify-between gap-1.5 sm:gap-2 xl:gap-3 2xl:gap-4">
+        <div className="w-full max-w-[100vw] px-2 sm:px-3 lg:px-3.5 xl:px-4 2xl:px-8 mx-auto h-18 min-h-[72px] flex flex-nowrap items-center justify-between gap-1 sm:gap-2 xl:gap-2.5 2xl:gap-4">
           {/* Zone 1 (Flush Left): Brand Identity */}
-          <div className="flex items-center gap-2.5 sm:gap-3 select-none shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 select-none shrink-0">
             <Link to="/" onClick={handleGoHome} className="relative group cursor-pointer shrink-0" title="RiskOS Home">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-[#0B2545] dark:border-blue-500 p-0.5 bg-white shadow-md group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 xl:w-12 xl:h-12 rounded-full overflow-hidden border-2 border-[#0B2545] dark:border-blue-500 p-0.5 bg-white shadow-md group-hover:scale-105 transition-transform shrink-0">
                 <img
                   src="/riskos-logo.png"
                   alt="RiskOS Emblem"
@@ -281,7 +281,7 @@ export default function Home() {
                   जोखिम ओएस
                 </span>
               </div>
-              <p className="text-[10px] xl:text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[170px] xl:max-w-[240px] 2xl:max-w-md hidden sm:block">
+              <p className="text-[10px] xl:text-[10.5px] 2xl:text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[150px] xl:max-w-[190px] 2xl:max-w-md hidden sm:block">
                 {isHi
                   ? "आपदा निर्णय समर्थन प्रणाली (GIS-DSS)"
                   : "Disaster Decision Support System (GIS-DSS)"}
@@ -290,7 +290,7 @@ export default function Home() {
           </div>
 
           {/* Zone 2 (Center Balanced): Navigation Menu Links - Strict Single Line */}
-          <nav className="hidden lg:flex items-center gap-2 lg:gap-2.5 xl:gap-3.5 2xl:gap-5 text-[10.5px] xl:text-[11px] 2xl:text-xs font-semibold tracking-normal 2xl:tracking-wider text-slate-600 dark:text-slate-200 uppercase whitespace-nowrap shrink-0">
+          <nav className="hidden lg:flex items-center gap-1.5 lg:gap-2 xl:gap-2.5 2xl:gap-4.5 text-[10px] xl:text-[10.5px] 2xl:text-xs font-semibold tracking-normal 2xl:tracking-wider text-slate-600 dark:text-slate-200 uppercase whitespace-nowrap shrink-0">
             <button
               onClick={() => scrollToSection("mandate")}
               className="hover:text-[#0B2545] dark:hover:text-blue-400 transition-colors uppercase whitespace-nowrap shrink-0 cursor-pointer focus:outline-none"
@@ -336,7 +336,7 @@ export default function Home() {
               to="/public-map"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1.5 xl:px-2.5 xl:py-1.5 2xl:px-3 2xl:py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10.5px] xl:text-[11px] 2xl:text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 transition shrink-0 whitespace-nowrap"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1.5 xl:px-2.5 xl:py-1.5 2xl:px-3 2xl:py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] xl:text-[10.5px] 2xl:text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 transition shrink-0 whitespace-nowrap"
               title="Public Citizen Incident Map"
             >
               <Radio className="w-3.5 h-3.5 text-[#F46036] animate-pulse" />
@@ -346,7 +346,7 @@ export default function Home() {
             {/* Department Registration Link */}
             <Link
               to="/register"
-              className="hidden md:inline-flex items-center gap-1.5 px-2 py-1.5 xl:px-2.5 xl:py-1.5 2xl:px-3.5 2xl:py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[10.5px] xl:text-[11px] 2xl:text-xs font-bold rounded-lg border border-amber-300 dark:border-amber-800 transition shrink-0 whitespace-nowrap"
+              className="hidden md:inline-flex items-center gap-1.5 px-2 py-1.5 xl:px-2.5 xl:py-1.5 2xl:px-3.5 2xl:py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[10px] xl:text-[10.5px] 2xl:text-xs font-bold rounded-lg border border-amber-300 dark:border-amber-800 transition shrink-0 whitespace-nowrap"
               title="Official Department Personnel Registration"
             >
               <UserCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
@@ -356,7 +356,7 @@ export default function Home() {
             {/* Officer Access or Dashboard Button */}
             <button
               onClick={() => handleEnterDashboard("/dashboard")}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 xl:px-3 xl:py-1.5 2xl:px-4 2xl:py-2 bg-[#0B2545] hover:bg-[#103058] dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-[10.5px] xl:text-[11px] 2xl:text-xs font-bold rounded-lg shadow-md transition-all shrink-0 whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 xl:px-3 xl:py-1.5 2xl:px-4 2xl:py-2 bg-[#0B2545] hover:bg-[#103058] dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-[10px] xl:text-[10.5px] 2xl:text-xs font-bold rounded-lg shadow-md transition-all shrink-0 whitespace-nowrap"
             >
               {isAuthenticated && is2FAVerified ? (
                 <>
