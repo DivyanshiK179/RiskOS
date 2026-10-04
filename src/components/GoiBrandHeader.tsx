@@ -90,7 +90,7 @@ export default function GoiBrandHeader({
 
   return (
     <>
-      <header className="w-full h-16 min-h-[64px] flex items-center justify-between px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shrink-0 relative z-40 select-none">
+      <header className="w-full max-w-[100vw] h-16 min-h-[64px] flex items-center justify-between px-3 sm:px-4 lg:px-6 xl:px-8 mx-auto bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shrink-0 relative z-40 select-none">
         {/* LEFT ZONE: Brand & Title (Dedicated width, shrink-0, clean subtitle) */}
         <div className="flex items-center gap-3 shrink-0">
           <Link to="/" onClick={handleLogoClick} className="flex items-center gap-3 group select-none">
@@ -115,7 +115,7 @@ export default function GoiBrandHeader({
                   जोखिम ओएस
                 </span>
                 <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  {isPublic ? (lang === "hi" ? "सार्वजनिक नागरिक पोर्टल • उत्तराखंड एसडीएमए" : "🇮🇳 Public Citizen Portal • Uttarakhand SDMA") : t("GOVERNMENT OF INDIA • STATUTORY SDMA PORTAL")}
+                  {t("GOVERNMENT OF INDIA • STATUTORY SDMA PORTAL")}
                 </span>
               </div>
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
@@ -179,7 +179,7 @@ export default function GoiBrandHeader({
             </div>
             <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {isPublic ? (lang === "hi" ? "सार्वजनिक नागरिक पोर्टल • उत्तराखंड एसडीएमए" : "🇮🇳 Public Citizen Portal • Uttarakhand SDMA") : t("header.officialPortal")}
+              {t("header.officialPortal")}
             </span>
           </div>
 
@@ -187,25 +187,18 @@ export default function GoiBrandHeader({
           {accessToken ? (
             <div className="flex items-center gap-3">
               {/* Official Officer Status Badge */}
-              {!isPublic ? (
-                <div className="hidden sm:flex flex-col text-right">
-                  <div className="flex items-center gap-1.5 justify-end">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-300 dark:ring-emerald-950" title={t("header.officialBadge")} />
-                    <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                      {displayName}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
-                    {t("header.officerRole")}
+              <div className="hidden sm:flex flex-col text-right">
+                <div className="flex items-center gap-1.5 justify-end">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-300 dark:ring-emerald-950" title={t("header.officialBadge")} />
+                  <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                    {displayName}
                   </span>
                 </div>
-              ) : (
-                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-medium">
-                  <User className="w-3.5 h-3.5" />
-                  <span className="truncate max-w-[120px] font-semibold">{displayName}</span>
-                </div>
-              )}
+                <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                  {t("header.officerRole")}
+                </span>
+              </div>
 
               {isPublic && (
                 <button
@@ -243,12 +236,12 @@ export default function GoiBrandHeader({
 
       {/* Secondary Navigation Menu Strip (Strict Single-Line Alignment) */}
       {showNav && (
-        <div className="w-full bg-[#0B2545] border-t border-blue-900/40 px-3 sm:px-6 lg:px-8 xl:px-12 py-2 flex flex-nowrap items-center justify-between gap-4 text-white shrink-0 shadow-sm relative z-30 select-none">
-          <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs font-bold tracking-wider text-slate-200 uppercase whitespace-nowrap shrink-0">
+        <div className="w-full max-w-[100vw] bg-[#0B2545] border-t border-blue-900/40 px-3 sm:px-4 lg:px-6 xl:px-8 py-2 mx-auto flex flex-nowrap items-center justify-between gap-2 sm:gap-4 text-white shrink-0 shadow-sm relative z-30 select-none">
+          <nav className="hidden lg:flex items-center gap-3 lg:gap-4 xl:gap-6 text-[11px] xl:text-xs font-semibold tracking-normal xl:tracking-wider text-slate-200 uppercase whitespace-nowrap shrink-0">
             <Link
               to="/#mandate"
               onClick={(e) => handleSectionClick("mandate", e)}
-              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
                 activeNav === "mandate" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -257,7 +250,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#pillars"
               onClick={(e) => handleSectionClick("pillars", e)}
-              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
                 activeNav === "pillars" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -266,7 +259,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#statistics"
               onClick={(e) => handleSectionClick("statistics", e)}
-              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
                 activeNav === "telemetry" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -275,7 +268,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#architecture"
               onClick={(e) => handleSectionClick("architecture", e)}
-              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
                 activeNav === "architecture" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -284,7 +277,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#faqs"
               onClick={(e) => handleSectionClick("faqs", e)}
-              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
                 activeNav === "faqs" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -293,7 +286,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#contact"
               onClick={(e) => handleSectionClick("contact", e)}
-              className={`transition-colors uppercase tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
                 activeNav === "helpline" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -301,12 +294,12 @@ export default function GoiBrandHeader({
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2.5 shrink-0 ml-auto lg:ml-0">
+          <div className="flex items-center gap-2 xl:gap-3 shrink-0 ml-auto lg:ml-0">
             <Link
               to="/public-map"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold rounded-lg border border-slate-700 transition shrink-0 whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 xl:px-3 xl:py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 text-[11px] xl:text-xs font-bold rounded-lg border border-slate-700 transition shrink-0 whitespace-nowrap"
               title="Public Citizen Incident Map"
             >
               <Radio className="w-3.5 h-3.5 text-[#F46036] animate-pulse" />
@@ -315,7 +308,7 @@ export default function GoiBrandHeader({
 
             <button
               onClick={handleEnterDashboard}
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1E3A8A] hover:bg-blue-800 text-white text-xs font-bold rounded-lg border border-blue-700 transition shrink-0 whitespace-nowrap shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 xl:px-4 xl:py-2 bg-[#1E3A8A] hover:bg-blue-800 text-white text-[11px] xl:text-xs font-bold rounded-lg border border-blue-700 transition shrink-0 whitespace-nowrap shadow-sm"
               title="Enter Official Command Dashboard"
             >
               <Lock className="w-3.5 h-3.5 text-amber-400" />
