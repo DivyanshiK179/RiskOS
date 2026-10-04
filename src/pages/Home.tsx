@@ -1152,21 +1152,21 @@ export default function Home() {
               </div>
 
               <div className="pt-4 border-t border-slate-700 flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => handleEnterDashboard("/dashboard")}
+                <Link
+                  to="/public-map"
                   className="w-full py-3 bg-white text-slate-950 hover:bg-slate-100 font-extrabold text-xs rounded-xl shadow transition flex items-center justify-center gap-2"
                 >
                   <Compass className="w-4 h-4 text-[#0B2545]" />
-                  <span>{isHi ? "कमांड डैशबोर्ड खोलें" : "Launch GIS Dashboard"}</span>
-                </button>
+                  <span>{isHi ? "सार्वजनिक डैशबोर्ड खोलें" : "Launch Public Dashboard"}</span>
+                </Link>
 
-                <button
-                  onClick={() => navigate("/login?redirect=%2Fdashboard")}
+                <Link
+                  to="/login"
                   className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl border border-slate-700 transition flex items-center justify-center gap-2"
                 >
                   <Lock className="w-3.5 h-3.5 text-amber-400" />
                   <span>{isHi ? "अधिकारी लॉगिन" : "Official Officer Login"}</span>
-                </button>
+                </Link>
               </div>
             </div>
           </div>
