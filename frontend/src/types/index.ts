@@ -7,6 +7,7 @@ export type NdmaRole = "DISTRICT_MAGISTRATE" | "DEOC_OPERATOR" | "SDRF_COMMANDER
 export type ApprovalStatus = "APPROVED" | "PENDING" | "REJECTED";
 
 export type OfficialTier = "NATIONAL_NDMA" | "STATE_SDMA" | "DISTRICT_DEOC" | "FIELD_RESPONDER";
+export type AuthProvider = "GOVNET" | "PARICHAY";
 
 export interface TierMetadata {
   tier: OfficialTier;
@@ -75,6 +76,7 @@ export interface UserProfile {
   assigned_district?: string;
   is_2fa_enrolled?: boolean;
   is_approved_by_nodal?: boolean;
+  auth_provider?: AuthProvider;
   approval_status?: ApprovalStatus;
   clearanceRole?: NdmaRole;
   department: string;

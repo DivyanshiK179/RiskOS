@@ -24,9 +24,13 @@ export interface RegisterPayload {
   employee_id?: string;
 }
 
-export async function login(username: string, password: string): Promise<LoginResponse> {
+export async function login(
+  username: string,
+  password: string,
+  authProvider: "GOVNET" | "PARICHAY" = "GOVNET"
+): Promise<LoginResponse> {
   try {
-    const res = await client.post<LoginResponse>("/auth/login/", { username, password });
+    const res = await client.post<LoginResponse>("/auth/login/", { username, password, auth_provider: authProvider });
     return res.data;
   } catch (err: any) {
     const u = username.trim().toLowerCase();
