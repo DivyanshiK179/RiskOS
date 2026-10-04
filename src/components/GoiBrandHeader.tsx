@@ -236,12 +236,12 @@ export default function GoiBrandHeader({
 
       {/* Secondary Navigation Menu Strip (Strict Single-Line Alignment) */}
       {showNav && (
-        <div className="w-full max-w-[100vw] bg-[#0B2545] border-t border-blue-900/40 px-3 sm:px-4 lg:px-6 xl:px-8 py-2 mx-auto flex flex-nowrap items-center justify-between gap-2 sm:gap-4 text-white shrink-0 shadow-sm relative z-30 select-none">
-          <nav className="hidden lg:flex items-center gap-3 lg:gap-4 xl:gap-6 text-[11px] xl:text-xs font-semibold tracking-normal xl:tracking-wider text-slate-200 uppercase whitespace-nowrap shrink-0">
+        <div className="w-full max-w-[100vw] bg-[#0B2545] border-t border-blue-900/40 px-2 sm:px-3 lg:px-4 xl:px-6 2xl:px-8 py-2 mx-auto flex flex-nowrap items-center justify-between gap-1.5 sm:gap-2 xl:gap-3 2xl:gap-4 text-white shrink-0 shadow-sm relative z-30 select-none">
+          <nav className="hidden lg:flex items-center gap-2 lg:gap-2.5 xl:gap-3.5 2xl:gap-5 text-[10.5px] xl:text-[11px] 2xl:text-xs font-semibold tracking-normal 2xl:tracking-wider text-slate-200 uppercase whitespace-nowrap shrink-0">
             <Link
               to="/#mandate"
               onClick={(e) => handleSectionClick("mandate", e)}
-              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase whitespace-nowrap shrink-0 ${
                 activeNav === "mandate" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -250,7 +250,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#pillars"
               onClick={(e) => handleSectionClick("pillars", e)}
-              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase whitespace-nowrap shrink-0 ${
                 activeNav === "pillars" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -259,7 +259,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#statistics"
               onClick={(e) => handleSectionClick("statistics", e)}
-              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase whitespace-nowrap shrink-0 ${
                 activeNav === "telemetry" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -268,7 +268,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#architecture"
               onClick={(e) => handleSectionClick("architecture", e)}
-              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase whitespace-nowrap shrink-0 ${
                 activeNav === "architecture" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -277,7 +277,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#faqs"
               onClick={(e) => handleSectionClick("faqs", e)}
-              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase whitespace-nowrap shrink-0 ${
                 activeNav === "faqs" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -286,7 +286,7 @@ export default function GoiBrandHeader({
             <Link
               to="/#contact"
               onClick={(e) => handleSectionClick("contact", e)}
-              className={`transition-colors uppercase tracking-normal xl:tracking-wider whitespace-nowrap shrink-0 ${
+              className={`transition-colors uppercase whitespace-nowrap shrink-0 ${
                 activeNav === "helpline" ? "text-amber-400 font-black border-b-2 border-amber-400 pb-0.5" : "hover:text-amber-400"
               }`}
             >
@@ -294,12 +294,12 @@ export default function GoiBrandHeader({
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2 xl:gap-3 shrink-0 ml-auto lg:ml-0">
+          <div className="flex items-center gap-1.5 xl:gap-2 2xl:gap-3 shrink-0 ml-auto lg:ml-0">
             <Link
               to="/public-map"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 xl:px-3 xl:py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 text-[11px] xl:text-xs font-bold rounded-lg border border-slate-700 transition shrink-0 whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 xl:px-2.5 xl:py-1.5 2xl:px-3 2xl:py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 text-[10.5px] xl:text-[11px] 2xl:text-xs font-bold rounded-lg border border-slate-700 transition shrink-0 whitespace-nowrap"
               title="Public Citizen Incident Map"
             >
               <Radio className="w-3.5 h-3.5 text-[#F46036] animate-pulse" />
@@ -308,7 +308,7 @@ export default function GoiBrandHeader({
 
             <button
               onClick={handleEnterDashboard}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 xl:px-4 xl:py-2 bg-[#1E3A8A] hover:bg-blue-800 text-white text-[11px] xl:text-xs font-bold rounded-lg border border-blue-700 transition shrink-0 whitespace-nowrap shadow-sm"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 xl:px-3 xl:py-1.5 2xl:px-4 2xl:py-2 bg-[#1E3A8A] hover:bg-blue-800 text-white text-[10.5px] xl:text-[11px] 2xl:text-xs font-bold rounded-lg border border-blue-700 transition shrink-0 whitespace-nowrap shadow-sm"
               title="Enter Official Command Dashboard"
             >
               <Lock className="w-3.5 h-3.5 text-amber-400" />
