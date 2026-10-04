@@ -60,8 +60,8 @@ interface MapViewProps {
 export type BasemapType = "satellite" | "streets" | "street" | "topo" | "bhuvan";
 
 export const BASEMAP_OPTIONS = [
-  { id: "bhuvan", label: "ISRO Bhuvan", icon: "🛰️", hiLabel: "इसरो भुवन" },
   { id: "satellite", label: "Satellite Hybrid", icon: "🛰️", hiLabel: "उपग्रह हाइब्रिड" },
+  { id: "bhuvan", label: "ISRO Bhuvan", icon: "🛰️", hiLabel: "इसरो भुवन" },
   { id: "topo", label: "Topographic", icon: "🗺️", hiLabel: "स्थलाकृतिक" },
   { id: "streets", label: "Street Map", icon: "🛣️", hiLabel: "सड़क मानचित्र" },
 ];
@@ -259,8 +259,9 @@ export default function MapView({
   const safeSitesRef = useRef<any>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("bhuvan");
+  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("satellite");
   const [basemapDropdownOpen, setBasemapDropdownOpen] = useState(false);
+  const [isBasemapMenuOpen, setIsBasemapMenuOpen] = useState(false);
 
   const currentOption = BASEMAP_OPTIONS.find(
     (b) => b.id === activeBasemap || (b.id === "streets" && activeBasemap === "street")
@@ -268,10 +269,14 @@ export default function MapView({
 
   // Grouped Hazard & Infrastructure Layer Toggles
   const [showHabs, setShowHabs] = useState(true);
-  const [showSites, setShowSites] = useState(showSafeSites);
+  const [showSites, setShowSites] = useState(showSafeSites ?? true);
   const [showLandslide, setShowLandslide] = useState(initialShowLandslide ?? true);
   const [showFlood, setShowFlood] = useState(initialShowFlood ?? false);
   const [activeLayerTab, setActiveLayerTab] = useState<"layers" | "legend">("layers");
+
+  useEffect(() => {
+    if (showSafeSites !== undefined) setShowSites(showSafeSites);
+  }, [showSafeSites]);
 
   // Facility Ribbon Filter (BharatMaps Standard)
   const [selectedFacility, setSelectedFacility] = useState<string>(initialFacility ?? "all");
@@ -1417,13 +1422,16 @@ export default function MapView({
       // 5. Safe Relocation Shelters Source & Symbology
       map.addSource("safesites", {
         type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
+        data: safeSitesRef.current && safeSitesRef.current.features?.length > 0
+          ? safeSitesRef.current
+          : { type: "FeatureCollection", features: [] },
       });
 
       map.addLayer({
         id: "safesites-layer",
         type: "circle",
         source: "safesites",
+        layout: { visibility: showSites ? "visible" : "none" },
         paint: {
           "circle-radius": [
             "interpolate", ["linear"], ["zoom"],
@@ -1450,6 +1458,7 @@ export default function MapView({
         id: "habitations-halo",
         type: "circle",
         source: "habitations",
+        layout: { visibility: showHabs ? "visible" : "none" },
         filter: ["==", ["get", "hazard_level"], "RED"],
         paint: {
           "circle-radius": [
@@ -1469,6 +1478,7 @@ export default function MapView({
         id: "habitations-layer",
         type: "circle",
         source: "habitations",
+        layout: { visibility: showHabs ? "visible" : "none" },
         paint: {
           "circle-radius": [
             "match", ["get", "hazard_level"],
@@ -1539,6 +1549,7 @@ export default function MapView({
         source: "habitations",
         minzoom: 13.5,
         layout: {
+          visibility: showHabs ? "visible" : "none",
           "text-field": ["concat", ["get", "name"], " (Pop: ", ["to-string", ["get", "population"]], ")"],
           "text-size": 11,
           "text-offset": [0, 1.4],
@@ -1796,20 +1807,26 @@ export default function MapView({
     if (!mapLoaded || !mapRef.current) return;
     if (simulationResults) return;
 
-    if (habitationsData) {
+    if (habitationsData && Array.isArray(habitationsData.features) && habitationsData.features.length > 0) {
       (mapRef.current.getSource("habitations") as any)?.setData(habitationsData);
       return;
     }
 
-    const cachedData = queryClient.getQueryData(["habitations", district || "", hazardLevel || ""]);
-    if (cachedData) {
+    const cachedData = queryClient.getQueryData<any>(["habitations", district || "", hazardLevel || ""]);
+    if (cachedData && Array.isArray(cachedData.features) && cachedData.features.length > 0) {
       (mapRef.current.getSource("habitations") as any)?.setData(cachedData);
     } else {
       let alive = true;
-      getHabitations({ district, hazard_level: hazardLevel }).then((geojson) => {
-        if (!alive || !mapRef.current) return;
-        (mapRef.current.getSource("habitations") as any)?.setData(geojson);
-      });
+      getHabitations({ district, hazard_level: hazardLevel })
+        .then((geojson) => {
+          if (!alive || !mapRef.current) return;
+          if (geojson && Array.isArray(geojson.features)) {
+            (mapRef.current.getSource("habitations") as any)?.setData(geojson);
+          }
+        })
+        .catch((err) => {
+          console.warn("Could not load habitations data into map:", err);
+        });
       return () => { alive = false; };
     }
   }, [district, hazardLevel, mapLoaded, simulationResults, queryClient, habitationsData]);
@@ -1819,22 +1836,28 @@ export default function MapView({
     if (!mapLoaded || !mapRef.current) return;
     let alive = true;
     const typeParam = selectedFacility === "all" ? undefined : selectedFacility;
-    getSafeSites({ district: district || undefined, type: typeParam }).then((geojson) => {
-      if (!alive || !mapRef.current) return;
-      safeSitesRef.current = geojson;
-      (mapRef.current.getSource("safesites") as any)?.setData(geojson);
+    getSafeSites({ district: district || undefined, type: typeParam })
+      .then((geojson) => {
+        if (!alive || !mapRef.current) return;
+        safeSitesRef.current = geojson;
+        if (geojson && Array.isArray(geojson.features)) {
+          (mapRef.current.getSource("safesites") as any)?.setData(geojson);
+        }
 
-      // Active Facility Filter & Map Pin Sync
-      if (geojson && geojson.features && geojson.features.length > 0) {
-        if (selectedFacility !== "all") {
-          // Fit viewport to encompass the filtered facility markers
-          const bbox = turf.bbox(geojson);
-          if (bbox && isFinite(bbox[0]) && isFinite(bbox[1]) && isFinite(bbox[2]) && isFinite(bbox[3])) {
-            mapRef.current.fitBounds(bbox as any, { padding: 90, maxZoom: 14, duration: 1000 });
+        // Active Facility Filter & Map Pin Sync
+        if (geojson && geojson.features && geojson.features.length > 0) {
+          if (selectedFacility !== "all") {
+            // Fit viewport to encompass the filtered facility markers
+            const bbox = turf.bbox(geojson);
+            if (bbox && isFinite(bbox[0]) && isFinite(bbox[1]) && isFinite(bbox[2]) && isFinite(bbox[3])) {
+              mapRef.current.fitBounds(bbox as any, { padding: 90, maxZoom: 14, duration: 1000 });
+            }
           }
         }
-      }
-    });
+      })
+      .catch((err) => {
+        console.warn("Could not load safe sites data into map:", err);
+      });
     return () => { alive = false; };
   }, [mapLoaded, selectedFacility, district]);
 
@@ -2507,47 +2530,6 @@ export default function MapView({
 
             {activeLayerTab === "layers" ? (
               <div className="space-y-3">
-                {/* Basemap Provider Selector Cards */}
-                <div className="space-y-1.5 pb-2.5 border-b border-slate-200 dark:border-slate-700/60">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                      {isHi ? "आधार मानचित्र (Basemap)" : "Basemap Provider"}
-                    </span>
-                    <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 font-mono">
-                      {currentOption.icon} {isHi ? currentOption.hiLabel : currentOption.label}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {BASEMAP_OPTIONS.map((opt) => {
-                      const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => switchBasemap(opt.id as BasemapType)}
-                          className={`group relative flex items-center gap-2 p-1.5 rounded-lg border text-left transition-all ${
-                            isSelected
-                              ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/50 opacity-100 shadow-xs"
-                              : "border-slate-200 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-800/60"
-                          }`}
-                          title={isHi ? opt.hiLabel : opt.label}
-                          aria-label={opt.label}
-                        >
-                          <span className="text-base flex-shrink-0">{opt.icon}</span>
-                          <div className="min-w-0 flex-1">
-                            <span className={`text-[10px] font-bold block truncate leading-tight ${isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"}`}>
-                              {isHi ? opt.hiLabel : opt.label}
-                            </span>
-                            <span className="text-[8.5px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-mono">
-                              {opt.id}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
                 {/* 1. Core Settlements & Safe Shelters */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
@@ -2670,37 +2652,63 @@ export default function MapView({
       )}
 
       {/* Basemap Quick-Preview Thumb Cards (Bottom Right, BharatMaps Style) */}
-      <div className="absolute bottom-10 right-4 z-20">
-        <div className="flex items-center gap-1.5 p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-2xl">
-          {BASEMAP_OPTIONS.map((opt) => {
-            const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => switchBasemap(opt.id as BasemapType)}
-                className={`relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border transition-all ${
-                  isSelected
-                    ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md scale-102"
-                    : "border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50/80 dark:bg-slate-800/80"
-                }`}
-                title={`Select ${isHi ? opt.hiLabel : opt.label}`}
-                aria-label={opt.label}
-              >
-                <div className="w-full flex-1 flex items-center justify-center">
-                  <span className="text-base select-none">{opt.icon}</span>
-                </div>
-                {/* Single legible badge/label beneath the icon (no duplicated text) */}
-                <span
-                  className={`text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight ${
-                    isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"
+      <div
+        className="absolute bottom-10 right-4 z-20"
+        onMouseLeave={() => setIsBasemapMenuOpen(false)}
+      >
+        <div className="flex items-center gap-1.5 p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-2xl transition-all">
+          {!isBasemapMenuOpen ? (
+            /* Active-Only Single Card Display in Collapsed State */
+            <button
+              type="button"
+              onClick={() => setIsBasemapMenuOpen(true)}
+              onMouseEnter={() => setIsBasemapMenuOpen(true)}
+              className="relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md transition-all hover:scale-105 cursor-pointer"
+              title={`Basemap: ${isHi ? currentOption.hiLabel : currentOption.label} (Click to switch)`}
+              aria-label={`Current basemap: ${currentOption.label}`}
+            >
+              <div className="w-full flex-1 flex items-center justify-center">
+                <span className="text-base select-none">{currentOption.icon}</span>
+              </div>
+              <span className="text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight text-blue-700 dark:text-blue-300 font-extrabold uppercase">
+                {currentOption.id === "bhuvan" ? "BHUVAN" : currentOption.id === "satellite" ? "SATELLITE" : currentOption.id === "topo" ? "TOPO" : "STREETS"}
+              </span>
+            </button>
+          ) : (
+            /* Expanded Multi-Option Selector */
+            BASEMAP_OPTIONS.map((opt) => {
+              const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    switchBasemap(opt.id as BasemapType);
+                    setIsBasemapMenuOpen(false);
+                  }}
+                  className={`relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border transition-all cursor-pointer ${
+                    isSelected
+                      ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md scale-102"
+                      : "border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50/80 dark:bg-slate-800/80"
                   }`}
+                  title={`Select ${isHi ? opt.hiLabel : opt.label}`}
+                  aria-label={opt.label}
                 >
-                  {opt.id === "bhuvan" ? "BHUVAN" : opt.id === "satellite" ? "SATELLITE" : opt.id === "topo" ? "TOPO" : "STREETS"}
-                </span>
-              </button>
-            );
-          })}
+                  <div className="w-full flex-1 flex items-center justify-center">
+                    <span className="text-base select-none">{opt.icon}</span>
+                  </div>
+                  {/* Single legible badge/label beneath the icon */}
+                  <span
+                    className={`text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight ${
+                      isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    {opt.id === "bhuvan" ? "BHUVAN" : opt.id === "satellite" ? "SATELLITE" : opt.id === "topo" ? "TOPO" : "STREETS"}
+                  </span>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 

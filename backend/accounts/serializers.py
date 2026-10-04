@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
-from .models import User
+from .models import User, OfficialTier
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -13,6 +13,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["department"] = user.department
         token["district"] = user.district
         token["approval_status"] = user.approval_status
+        token["tier"] = user.tier
+        token["official_id"] = user.official_id or ""
+        token["cadre_designation"] = user.cadre_designation or ""
+        token["assigned_district"] = user.assigned_district or user.district or ""
+        token["is_2fa_enrolled"] = user.is_2fa_enrolled
+        token["is_approved_by_nodal"] = user.is_approved_by_nodal
         return token
 
     def validate(self, attrs):
@@ -31,6 +37,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["username"] = user.username
         data["department"] = user.department
         data["district"] = user.district
+        data["tier"] = user.tier
+        data["official_id"] = user.official_id or ""
+        data["cadre_designation"] = user.cadre_designation or ""
+        data["assigned_district"] = user.assigned_district or user.district or ""
+        data["is_2fa_enrolled"] = user.is_2fa_enrolled
+        data["is_approved_by_nodal"] = user.is_approved_by_nodal
         return data
 
 
@@ -44,6 +56,12 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "role",
+            "tier",
+            "official_id",
+            "cadre_designation",
+            "assigned_district",
+            "is_2fa_enrolled",
+            "is_approved_by_nodal",
             "approval_status",
             "department",
             "designation",
@@ -68,6 +86,10 @@ class RegisterSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "role",
+            "tier",
+            "official_id",
+            "cadre_designation",
+            "assigned_district",
             "department",
             "designation",
             "district",
@@ -78,6 +100,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop("password")
         role = validated_data.get("role", User.Role.OFFICIAL)
+        tier = validated_data.get("tier", OfficialTier.FIELD_RESPONDER)
         # Public users are auto-approved; official/superadmin personnel require manager approval gating
         approval = (
             User.ApprovalStatus.APPROVED
@@ -86,6 +109,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         user = User(
             approval_status=approval,
+            tier=tier,
+            is_approved_by_nodal=(approval == User.ApprovalStatus.APPROVED),
             **validated_data
         )
         user.set_password(password)

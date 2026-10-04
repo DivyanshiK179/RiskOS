@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import User
+from .models import User, OfficialTier
 from .serializers import UserSerializer, RegisterSerializer, CustomTokenObtainPairSerializer
 
 
@@ -47,20 +47,28 @@ class RegisterView(APIView):
 
 class UserManagementView(APIView):
     """
-    Endpoint for Disaster Managers to list and manage department personnel.
+    Endpoint for Disaster Managers & Command Officers to list and manage department personnel.
+    Supports filtering by tier and approval_status.
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Allow SUPERADMIN or OFFICIAL users to query directory
-        users = User.objects.all().order_by("-date_joined")
-        serializer = UserSerializer(users, many=True)
+        queryset = User.objects.all().order_by("-date_joined")
+        tier_filter = request.query_params.get("tier")
+        status_filter = request.query_params.get("status")
+
+        if tier_filter and tier_filter in OfficialTier.values:
+            queryset = queryset.filter(tier=tier_filter)
+        if status_filter:
+            queryset = queryset.filter(approval_status=status_filter)
+
+        serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
 
 
 class UserApprovalActionView(APIView):
     """
-    Endpoint to approve, reject, or reassign a user's role.
+    Endpoint to approve, reject, or reassign a user's role and official tier.
     """
     permission_classes = [IsAuthenticated]
 
@@ -70,11 +78,14 @@ class UserApprovalActionView(APIView):
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        action = request.data.get("action")  # "APPROVE", "REJECT", "UPDATE_ROLE"
+        action = request.data.get("action")  # "APPROVE", "REJECT", "UPDATE_ROLE", "UPDATE_TIER"
         if action == "APPROVE":
             target_user.approval_status = User.ApprovalStatus.APPROVED
+            target_user.is_approved_by_nodal = True
             if "role" in request.data:
                 target_user.role = request.data["role"]
+            if "tier" in request.data and request.data["tier"] in OfficialTier.values:
+                target_user.tier = request.data["tier"]
             target_user.save()
             return Response({"message": f"User {target_user.username} approved successfully."})
         elif action == "REJECT":
@@ -88,5 +99,12 @@ class UserApprovalActionView(APIView):
                 target_user.save()
                 return Response({"message": f"Role updated to {new_role}."})
             return Response({"error": "Invalid role value."}, status=status.HTTP_400_BAD_REQUEST)
+        elif action == "UPDATE_TIER":
+            new_tier = request.data.get("tier")
+            if new_tier in OfficialTier.values:
+                target_user.tier = new_tier
+                target_user.save()
+                return Response({"message": f"Official tier updated to {new_tier}."})
+            return Response({"error": "Invalid tier value."}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"error": "Invalid action specified."}, status=status.HTTP_400_BAD_REQUEST)

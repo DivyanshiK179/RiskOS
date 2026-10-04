@@ -13,12 +13,14 @@ import {
   CheckCircle2,
   ArrowRight,
   KeyRound,
-  FileCheck
+  FileCheck,
+  Award
 } from "lucide-react";
 import GoiTopBar from "../components/GoiTopBar";
 import GoiFooter from "../components/GoiFooter";
 import { registerUser } from "../api/auth";
 import { useTranslation } from "../i18n/translations";
+import { type OfficialTier, TIER_METADATA } from "../types";
 
 const DEPARTMENTS = [
   "Uttarakhand SDMA (USDMA)",
@@ -61,6 +63,9 @@ export default function Register() {
     username: "",
     email: "",
     employeeId: "",
+    officialId: "",
+    tier: "STATE_SDMA" as OfficialTier,
+    cadreDesignation: "",
     department: DEPARTMENTS[0],
     designation: "",
     district: DISTRICTS[0],
@@ -109,6 +114,10 @@ export default function Register() {
         first_name: formData.firstName.trim(),
         last_name: formData.lastName.trim(),
         role: formData.role,
+        tier: formData.tier,
+        official_id: formData.officialId.trim() || formData.employeeId.trim(),
+        cadre_designation: formData.cadreDesignation.trim() || formData.designation.trim(),
+        assigned_district: formData.district,
         department: formData.department,
         designation: formData.designation.trim() || "Field Officer",
         district: formData.district,
@@ -283,44 +292,79 @@ export default function Register() {
                 </div>
               </div>
 
-              {/* Row 3: Employee ID & Phone Number */}
+              {/* Row 3: Official Administrative Tier & Clearance */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-amber-500" />
+                    <span>{isHi ? "आधिकारिक प्रशासनिक कमान स्तर (Official Administrative Tier) *" : "Official Administrative Tier & Clearance *"}</span>
+                  </label>
+                  <select
+                    value={formData.tier}
+                    onChange={(e) => setFormData({ ...formData, tier: e.target.value as OfficialTier })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#0B2545] outline-none font-medium"
+                  >
+                    <option value="NATIONAL_NDMA">
+                      Tier 1 — NDMA Apex Director / National Command (राष्ट्रीय कमान)
+                    </option>
+                    <option value="STATE_SDMA">
+                      Tier 2 — SEOC State Officer / SDMA Secretariat (राज्य नियंत्रण कक्ष)
+                    </option>
+                    <option value="DISTRICT_DEOC">
+                      Tier 3 — District Magistrate (DM) / DEOC Nodal Officer (जिला आपदा कमान)
+                    </option>
+                    <option value="FIELD_RESPONDER">
+                      Tier 4 — SDRF Field Commander / Tehsil Revenue Officer (फील्ड दस्ता)
+                    </option>
+                  </select>
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 pt-1 border-t border-slate-200 dark:border-slate-800">
+                  <span>{TIER_METADATA[formData.tier].scopeDescription}</span>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">{TIER_METADATA[formData.tier].jurisdictionEn}</span>
+                </div>
+              </div>
+
+              {/* Row 4: Official ID & Cadre Designation */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    {isHi ? "कर्मचारी / सेवा आईडी बैज *" : "Service Badge / Employee ID *"}
+                    {isHi ? "आधिकारिक सेवा / कार्मिक पहचान (Official ID) *" : "Official ID / Service Badge *"}
                   </label>
                   <div className="relative">
                     <FileCheck className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
                       type="text"
                       required
-                      value={formData.employeeId}
-                      onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                      placeholder="UK-DMA-2026-904"
+                      value={formData.officialId || formData.employeeId}
+                      onChange={(e) => setFormData({ ...formData, officialId: e.target.value, employeeId: e.target.value })}
+                      placeholder="UK-SDMA-2026-9041"
                       className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#0B2545] outline-none font-mono"
                     />
                   </div>
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    {isHi ? "उदा. UK-SDMA-2026-9041" : "e.g. UK-SDMA-2026-9041"}
+                  </span>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    {isHi ? "संपर्क मोबाइल नंबर *" : "Official Contact Mobile *"}
+                    {isHi ? "कैडर पदनाम (Cadre Designation) *" : "Cadre Designation *"}
                   </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="9876543210"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#0B2545] outline-none font-mono"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={formData.cadreDesignation}
+                    onChange={(e) => setFormData({ ...formData, cadreDesignation: e.target.value, designation: e.target.value })}
+                    placeholder={isHi ? "उदा. अपर जिला मजिस्ट्रेट (ई)" : "e.g. Additional District Magistrate (E)"}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#0B2545] outline-none"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    {isHi ? "विभागीय पद / संवर्ग" : "Statutory Cadre / Designation"}
+                  </span>
                 </div>
               </div>
 
-              {/* Row 4: Department & Designation */}
+              {/* Row 5: Department & Contact Mobile */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -344,20 +388,23 @@ export default function Register() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    {isHi ? "पदनाम / उत्तरदायित्व *" : "Designation / Role *"}
+                    {isHi ? "संपर्क मोबाइल नंबर *" : "Official Contact Mobile *"}
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.designation}
-                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    placeholder={isHi ? "उदा. सहायक भू-स्थानिक विश्लेषक" : "e.g. Field GIS Analyst"}
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#0B2545] outline-none"
-                  />
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="9876543210"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#0B2545] outline-none font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Row 5: Jurisdiction District */}
+              {/* Row 6: Jurisdiction District */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   {isHi ? "कार्यक्षेत्र ज़िला *" : "Jurisdiction District *"}
