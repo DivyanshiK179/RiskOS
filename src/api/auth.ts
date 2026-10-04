@@ -13,6 +13,10 @@ export interface RegisterPayload {
   first_name?: string;
   last_name?: string;
   role?: string;
+  tier?: string;
+  official_id?: string;
+  cadre_designation?: string;
+  assigned_district?: string;
   department?: string;
   designation?: string;
   district?: string;
@@ -31,7 +35,8 @@ export async function login(username: string, password: string): Promise<LoginRe
 
     if (
       isNetworkError &&
-      ((u === "official" && p === "RiskSetu@2026") ||
+      ((u === "ndma" && p === "Apex@NDMA2026") ||
+       (u === "official" && p === "RiskSetu@2026") ||
        (u === "superadmin" && p === "Admin@RS2026") ||
        (u === "sdrf" && p === "Sdrf@2026"))
     ) {
@@ -66,10 +71,11 @@ export async function getUsersList(): Promise<UserProfile[]> {
 
 export async function updateUserApproval(
   userId: number,
-  action: "APPROVE" | "REJECT" | "UPDATE_ROLE",
-  role?: string
+  action: "APPROVE" | "REJECT" | "UPDATE_ROLE" | "UPDATE_TIER",
+  role?: string,
+  tier?: string
 ): Promise<{ message: string }> {
-  const res = await client.post<{ message: string }>(`/auth/users/${userId}/action/`, { action, role });
+  const res = await client.post<{ message: string }>(`/auth/users/${userId}/action/`, { action, role, tier });
   return res.data;
 }
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Clock, User, LogOut, Lock, ExternalLink, Radio, Menu, X } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { useTranslation } from "../i18n/translations";
+import { TIER_METADATA } from "../types";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 
 interface GoiBrandHeaderProps {
@@ -16,7 +17,7 @@ export default function GoiBrandHeader({
   showNav = false,
   activeNav = "",
 }: GoiBrandHeaderProps) {
-  const { accessToken, username, user, logout, is2FAVerified } = useAuthStore();
+  const { accessToken, username, user, logout, is2FAVerified, officialTier } = useAuthStore();
   const isAuthenticated = Boolean(accessToken);
   const { t, lang } = useTranslation();
   const navigate = useNavigate();
@@ -195,9 +196,22 @@ export default function GoiBrandHeader({
                     {displayName}
                   </span>
                 </div>
-                <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
-                  {t("header.officerRole")}
-                </span>
+                <div className="flex items-center justify-end gap-1 text-[9.5px] mt-0.5">
+                  {(() => {
+                    const activeTier = user?.tier || officialTier || "STATE_SDMA";
+                    const meta = TIER_METADATA[activeTier] || TIER_METADATA.STATE_SDMA;
+                    return (
+                      <>
+                        <span className={`px-1.5 py-0.5 rounded font-bold text-[8.5px] border ${meta.badgeClass}`}>
+                          {meta.shortTitle}
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400 font-medium">
+                          • {user?.assigned_district || user?.district || "Uttarakhand"}
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
 
               {isPublic && (

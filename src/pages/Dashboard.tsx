@@ -56,6 +56,7 @@ import type {
   PlanStatus,
   AlertSeverity,
 } from "../types";
+import { TIER_METADATA } from "../types";
 import {
   hazardBadgeClass,
   hazardLabel,
@@ -250,7 +251,7 @@ export default function Dashboard() {
   ];
 
   const qc = useQueryClient();
-  const { user, username, fetchProfile, clearanceRole } = useAuthStore();
+  const { user, username, fetchProfile, clearanceRole, officialTier } = useAuthStore();
   const isManager = clearanceRole === "DISTRICT_MAGISTRATE" || user?.role === "SUPERADMIN";
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
@@ -1546,12 +1547,28 @@ export default function Dashboard() {
                     <div className="text-[10px] text-slate-500 mt-0.5">{t("Zero Breaches Detected")}</div>
                   </div>
                   <div className="card p-3.5 bg-white dark:bg-[#131e36]">
-                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{t("NDMA Clearance Tier")}</div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white mt-2 truncate">
-                      {clearanceRole === "DISTRICT_MAGISTRATE" ? "District Magistrate (IC)" : clearanceRole === "SDRF_COMMANDER" ? "SDRF Field Commander" : clearanceRole === "DEOC_OPERATOR" ? "DEOC Operator (Control Desk)" : "Public Citizen (PII Masked)"}
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center justify-between">
+                      <span>{t("NDMA Clearance Tier")}</span>
+                      {(() => {
+                        const activeTier = user?.tier || officialTier || "STATE_SDMA";
+                        const meta = TIER_METADATA[activeTier] || TIER_METADATA.STATE_SDMA;
+                        return (
+                          <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold border ${meta.badgeClass}`}>
+                            {meta.shortTitle}
+                          </span>
+                        );
+                      })()}
                     </div>
-                    <div className="text-[10px] text-amber-600 font-semibold mt-0.5">
-                      {displayName} • 2FA Active
+                    <div className="text-xs font-bold text-slate-900 dark:text-white mt-1.5 truncate">
+                      {(() => {
+                        const activeTier = user?.tier || officialTier || "STATE_SDMA";
+                        const meta = TIER_METADATA[activeTier] || TIER_METADATA.STATE_SDMA;
+                        return isHi ? meta.titleHi : meta.titleEn;
+                      })()}
+                    </div>
+                    <div className="text-[10px] text-amber-600 font-semibold mt-0.5 flex items-center justify-between">
+                      <span>{displayName} • 2FA Active</span>
+                      <span className="text-slate-400 font-mono text-[9px]">{user?.official_id || user?.employee_id || "UK-DMA-SECURE"}</span>
                     </div>
                   </div>
                 </div>

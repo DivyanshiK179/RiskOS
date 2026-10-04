@@ -6,6 +6,62 @@ export type UserRole = "PUBLIC" | "OFFICIAL" | "SUPERADMIN";
 export type NdmaRole = "DISTRICT_MAGISTRATE" | "DEOC_OPERATOR" | "SDRF_COMMANDER" | "PUBLIC_CITIZEN";
 export type ApprovalStatus = "APPROVED" | "PENDING" | "REJECTED";
 
+export type OfficialTier = "NATIONAL_NDMA" | "STATE_SDMA" | "DISTRICT_DEOC" | "FIELD_RESPONDER";
+
+export interface TierMetadata {
+  tier: OfficialTier;
+  titleEn: string;
+  titleHi: string;
+  shortTitle: string;
+  badgeClass: string;
+  jurisdictionEn: string;
+  jurisdictionHi: string;
+  scopeDescription: string;
+}
+
+export const TIER_METADATA: Record<OfficialTier, TierMetadata> = {
+  NATIONAL_NDMA: {
+    tier: "NATIONAL_NDMA",
+    titleEn: "NDMA Apex Director / National Command",
+    titleHi: "एनडीएमए शीर्ष निदेशक / राष्ट्रीय कमान",
+    shortTitle: "Tier 1: NDMA Apex",
+    badgeClass: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/70 dark:text-purple-300 dark:border-purple-800",
+    jurisdictionEn: "National & Multi-State Overview",
+    jurisdictionHi: "राष्ट्रीय एवं अंतर-राज्यीय पर्यवेक्षण",
+    scopeDescription: "Statewide & inter-state overview, national resource mobilization, full audit logs",
+  },
+  STATE_SDMA: {
+    tier: "STATE_SDMA",
+    titleEn: "SEOC State Officer / SDMA Secretariat",
+    titleHi: "एसईओसी राज्य अधिकारी / एसडीएमए सचिवालय",
+    shortTitle: "Tier 2: State SDMA",
+    badgeClass: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/70 dark:text-blue-300 dark:border-blue-800",
+    jurisdictionEn: "State Command (Uttarakhand SEOC)",
+    jurisdictionHi: "राज्य कमान (उत्तराखंड एसईओसी)",
+    scopeDescription: "Full GIS command, AI scenario blast execution, evacuation order authorization",
+  },
+  DISTRICT_DEOC: {
+    tier: "DISTRICT_DEOC",
+    titleEn: "District Magistrate (DM) / DEOC Nodal Officer",
+    titleHi: "जिला मजिस्ट्रेट (डीएम) / डीईओसी नोडल अधिकारी",
+    shortTitle: "Tier 3: District DEOC",
+    badgeClass: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-800",
+    jurisdictionEn: "District Command (District EOC)",
+    jurisdictionHi: "जिला कमान (जिला आपातकालीन केंद्र)",
+    scopeDescription: "District-scoped telemetry, local shelter management, incident dispatch forms",
+  },
+  FIELD_RESPONDER: {
+    tier: "FIELD_RESPONDER",
+    titleEn: "SDRF Field Commander / Tehsil Revenue Officer",
+    titleHi: "एसडीआरएफ फील्ड कमांडर / तहसील राजस्व अधिकारी",
+    shortTitle: "Tier 4: SDRF Field",
+    badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800",
+    jurisdictionEn: "Tehsil & Field Operations",
+    jurisdictionHi: "तहसील एवं जमीनी राहत अभियान",
+    scopeDescription: "Mobile field incident reporting, SOS verification, shelter capacity updates",
+  },
+};
+
 export interface UserProfile {
   id: number;
   username: string;
@@ -13,6 +69,12 @@ export interface UserProfile {
   first_name?: string;
   last_name?: string;
   role: UserRole;
+  tier?: OfficialTier;
+  official_id?: string;
+  cadre_designation?: string;
+  assigned_district?: string;
+  is_2fa_enrolled?: boolean;
+  is_approved_by_nodal?: boolean;
   approval_status?: ApprovalStatus;
   clearanceRole?: NdmaRole;
   department: string;

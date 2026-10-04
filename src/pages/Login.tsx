@@ -4,7 +4,7 @@ import { Shield, Lock, User, ArrowRight, CheckCircle2, AlertCircle, KeyRound, Sm
 import { login } from "../api/auth";
 import { useAuthStore } from "../store/authStore";
 import { useTranslation } from "../i18n/translations";
-import type { NdmaRole } from "../types";
+import type { NdmaRole, OfficialTier } from "../types";
 import GoiTopBar from "../components/GoiTopBar";
 import GoiFooter from "../components/GoiFooter";
 
@@ -26,7 +26,8 @@ export default function Login() {
 
   // Jan Parichay National SSO state
   const [parichayId, setParichayId] = useState("");
-  const [parichayRole, setParichayRole] = useState<NdmaRole>("DISTRICT_MAGISTRATE");
+  const [parichayTier, setParichayTier] = useState<OfficialTier>("STATE_SDMA");
+  const [parichayRole, setParichayRole] = useState<NdmaRole>("DEOC_OPERATOR");
   const [otpSent, setOtpSent] = useState(false);
   const [otpValue, setOtpValue] = useState("");
 
@@ -39,21 +40,46 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    const u = username.trim().toLowerCase();
+    const p = password.trim();
     try {
       const data = await login(username, password);
-      const role: NdmaRole = username.toLowerCase().includes("superadmin")
+      const role: NdmaRole = u.includes("superadmin")
         ? "DISTRICT_MAGISTRATE"
-        : username.toLowerCase().includes("sdrf")
+        : u.includes("sdrf")
         ? "SDRF_COMMANDER"
         : "DEOC_OPERATOR";
-      await authLogin(data.access, data.refresh, username, role);
+      const tier: OfficialTier = u.includes("ndma")
+        ? "NATIONAL_NDMA"
+        : u.includes("official")
+        ? "STATE_SDMA"
+        : u.includes("superadmin")
+        ? "DISTRICT_DEOC"
+        : u.includes("sdrf")
+        ? "FIELD_RESPONDER"
+        : "STATE_SDMA";
+      await authLogin(data.access, data.refresh, username, role, tier);
       navigate(redirectUrl);
     } catch (err: any) {
-      const u = username.trim().toLowerCase();
-      const p = password.trim();
-      if ((u === "official" && p === "RiskSetu@2026") || (u === "superadmin" && p === "Admin@RS2026")) {
-        const role: NdmaRole = u.includes("superadmin") ? "DISTRICT_MAGISTRATE" : "DEOC_OPERATOR";
-        await authLogin(`session_access_${u}`, `session_refresh_${u}`, username, role);
+      if (
+        (u === "ndma" && p === "Apex@NDMA2026") ||
+        (u === "official" && p === "RiskSetu@2026") ||
+        (u === "superadmin" && p === "Admin@RS2026") ||
+        (u === "sdrf" && p === "Sdrf@2026")
+      ) {
+        const role: NdmaRole = u.includes("superadmin")
+          ? "DISTRICT_MAGISTRATE"
+          : u.includes("sdrf")
+          ? "SDRF_COMMANDER"
+          : "DEOC_OPERATOR";
+        const tier: OfficialTier = u.includes("ndma")
+          ? "NATIONAL_NDMA"
+          : u.includes("official")
+          ? "STATE_SDMA"
+          : u.includes("superadmin")
+          ? "DISTRICT_DEOC"
+          : "FIELD_RESPONDER";
+        await authLogin(`session_access_${u}`, `session_refresh_${u}`, username, role, tier);
         navigate(redirectUrl);
         return;
       }
@@ -89,7 +115,7 @@ export default function Login() {
     setLoading(true);
     setTimeout(async () => {
       try {
-        await authLogin("parichay_jwt_mock_token_2026", "parichay_refresh_token_2026", parichayId, parichayRole);
+        await authLogin("parichay_jwt_mock_token_2026", "parichay_refresh_token_2026", parichayId, parichayRole, parichayTier);
         navigate(redirectUrl);
       } catch {
         setError(isHi ? "2FA सत्यापन विफल रहा।" : "2FA Verification failed.");
@@ -280,21 +306,32 @@ export default function Login() {
                   )}
                 </button>
 
-                {/* Pre-configured Official Accounts Quick Fill Box */}
+                {/* Pre-configured Official Accounts Quick Fill Box (4-Tier GoI NDMA/SDMA Architecture) */}
                 <div className="p-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1 mt-1">
                   <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                    {isHi ? "पूर्व-कॉन्फ़िगर आधिकारिक खाते:" : "Pre-configured Official Accounts:"}
+                    {isHi ? "पूर्व-कॉन्फ़िगर आधिकारिक कमान खाते (4-स्तरीय):" : "Statutory Command Tiers Quick-Fill (4 Tiers):"}
                   </span>
                   <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUsername("ndma");
+                        setPassword("Apex@NDMA2026");
+                      }}
+                      className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-purple-200 dark:border-purple-900/60 text-left hover:border-purple-500 transition cursor-pointer"
+                    >
+                      <span className="font-bold text-purple-700 dark:text-purple-400 block truncate text-[10.5px]">Tier 1: NDMA Apex</span>
+                      <span className="text-[9px] font-mono text-slate-500 block truncate">ndma / Apex@NDMA2026</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
                         setUsername("official");
                         setPassword("RiskSetu@2026");
                       }}
-                      className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-slate-300 dark:border-slate-700 text-left hover:border-blue-500 transition cursor-pointer"
+                      className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-blue-200 dark:border-blue-900/60 text-left hover:border-blue-500 transition cursor-pointer"
                     >
-                      <span className="font-bold text-blue-700 dark:text-blue-400 block truncate text-[10.5px]">State Officer</span>
+                      <span className="font-bold text-blue-700 dark:text-blue-400 block truncate text-[10.5px]">Tier 2: State SDMA</span>
                       <span className="text-[9px] font-mono text-slate-500 block truncate">official / RiskSetu@2026</span>
                     </button>
                     <button
@@ -303,10 +340,21 @@ export default function Login() {
                         setUsername("superadmin");
                         setPassword("Admin@RS2026");
                       }}
-                      className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-slate-300 dark:border-slate-700 text-left hover:border-blue-500 transition cursor-pointer"
+                      className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-amber-200 dark:border-amber-900/60 text-left hover:border-amber-500 transition cursor-pointer"
                     >
-                      <span className="font-bold text-amber-700 dark:text-amber-400 block truncate text-[10.5px]">Super Admin</span>
+                      <span className="font-bold text-amber-700 dark:text-amber-400 block truncate text-[10.5px]">Tier 3: District DEOC</span>
                       <span className="text-[9px] font-mono text-slate-500 block truncate">superadmin / Admin@RS2026</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUsername("sdrf");
+                        setPassword("Sdrf@2026");
+                      }}
+                      className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-emerald-200 dark:border-emerald-900/60 text-left hover:border-emerald-500 transition cursor-pointer"
+                    >
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400 block truncate text-[10.5px]">Tier 4: SDRF Field</span>
+                      <span className="text-[9px] font-mono text-slate-500 block truncate">sdrf / Sdrf@2026</span>
                     </button>
                   </div>
                 </div>
@@ -329,21 +377,31 @@ export default function Login() {
                   <form onSubmit={handleSendParichayOtp} className="space-y-2.5">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-0.5">
-                        {isHi ? "एनडीएमए सांविधिक भूमिका" : "Statutory NDMA Clearance Role"}
+                        {isHi ? "एनडीएमए सांविधिक कमान स्तर (Administrative Tier)" : "Statutory Command Tier & Clearance"}
                       </label>
                       <select
-                        value={parichayRole}
-                        onChange={(e) => setParichayRole(e.target.value as NdmaRole)}
+                        value={parichayTier}
+                        onChange={(e) => {
+                          const t = e.target.value as OfficialTier;
+                          setParichayTier(t);
+                          if (t === "NATIONAL_NDMA") setParichayRole("DEOC_OPERATOR");
+                          else if (t === "STATE_SDMA") setParichayRole("DEOC_OPERATOR");
+                          else if (t === "DISTRICT_DEOC") setParichayRole("DISTRICT_MAGISTRATE");
+                          else if (t === "FIELD_RESPONDER") setParichayRole("SDRF_COMMANDER");
+                        }}
                         className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                       >
-                        <option value="DISTRICT_MAGISTRATE">
-                          {isHi ? "जिला मजिस्ट्रेट (District Magistrate)" : "District Magistrate (Executive IC)"}
+                        <option value="NATIONAL_NDMA">
+                          {isHi ? "टियर 1: एनडीएमए शीर्ष निदेशक / राष्ट्रीय कमान" : "Tier 1: NDMA Apex Director / National Command"}
                         </option>
-                        <option value="DEOC_OPERATOR">
-                          {isHi ? "डीईओसी / एसईओसी नियंत्रण कक्ष" : "DEOC / SEOC Console Operator"}
+                        <option value="STATE_SDMA">
+                          {isHi ? "टियर 2: एसईओसी राज्य अधिकारी / एसडीएमए सचिवालय" : "Tier 2: SEOC State Officer / SDMA Secretariat"}
                         </option>
-                        <option value="SDRF_COMMANDER">
-                          {isHi ? "एसडीआरएफ / एनडीआरएफ फील्ड कमांडर" : "SDRF Field Operations Commander"}
+                        <option value="DISTRICT_DEOC">
+                          {isHi ? "टियर 3: जिला मजिस्ट्रेट (डीएम) / डीईओसी नोडल" : "Tier 3: District Magistrate / DEOC Nodal Officer"}
+                        </option>
+                        <option value="FIELD_RESPONDER">
+                          {isHi ? "टियर 4: एसडीआरएफ फील्ड कमांडर / फील्ड दस्ता" : "Tier 4: SDRF Field Commander / Field Responder"}
                         </option>
                       </select>
                     </div>

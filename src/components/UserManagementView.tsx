@@ -29,8 +29,17 @@ export default function UserManagementView() {
   });
 
   const approvalMutation = useMutation({
-    mutationFn: ({ userId, action, role }: { userId: number; action: "APPROVE" | "REJECT" | "UPDATE_ROLE"; role?: string }) =>
-      updateUserApproval(userId, action, role),
+    mutationFn: ({
+      userId,
+      action,
+      role,
+      tier,
+    }: {
+      userId: number;
+      action: "APPROVE" | "REJECT" | "UPDATE_ROLE" | "UPDATE_TIER";
+      role?: string;
+      tier?: string;
+    }) => updateUserApproval(userId, action, role, tier),
     onSuccess: (res) => {
       setActionFeedback(res.message);
       queryClient.invalidateQueries({ queryKey: ["users-list"] });
@@ -241,19 +250,20 @@ export default function UserManagementView() {
 
                         <td className="px-4 py-3">
                           <select
-                            value={u.role}
+                            value={u.tier || "FIELD_RESPONDER"}
                             onChange={(e) =>
                               approvalMutation.mutate({
                                 userId: u.id,
-                                action: "UPDATE_ROLE",
-                                role: e.target.value,
+                                action: "UPDATE_TIER",
+                                tier: e.target.value,
                               })
                             }
                             className="text-[11px] font-semibold py-1 px-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
                           >
-                            <option value="SUPERADMIN">Tier 1: Disaster Manager</option>
-                            <option value="OFFICIAL">Tier 2: Field Officer</option>
-                            <option value="PUBLIC">Tier 3: Public Citizen</option>
+                            <option value="NATIONAL_NDMA">Tier 1: NDMA Apex</option>
+                            <option value="STATE_SDMA">Tier 2: State SDMA</option>
+                            <option value="DISTRICT_DEOC">Tier 3: District DEOC</option>
+                            <option value="FIELD_RESPONDER">Tier 4: SDRF Field</option>
                           </select>
                         </td>
 
