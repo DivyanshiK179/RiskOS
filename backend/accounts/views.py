@@ -10,6 +10,20 @@ from .serializers import UserSerializer, RegisterSerializer, CustomTokenObtainPa
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        username = request.data.get("username")
+        auth_provider = request.data.get("auth_provider")
+        if username and auth_provider:
+            try:
+                user = User.objects.get(username=username)
+                if user.auth_provider != auth_provider:
+                    user.auth_provider = auth_provider
+                    user.save(update_fields=["auth_provider"])
+            except User.DoesNotExist:
+                pass
+        return response
+
 
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]

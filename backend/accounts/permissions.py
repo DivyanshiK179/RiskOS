@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from .models import User, OfficialTier
+from .models import User, OfficialTier, AuthProvider
 
 TIER_ORDER = {
     OfficialTier.NATIONAL_NDMA: 1,
@@ -64,8 +64,30 @@ class IsFieldResponder(BasePermission):
         return get_user_tier_level(request.user) <= 4
 
 
+class IsParichayAuthenticated(BasePermission):
+    """Requires authentication via Jan Parichay National SSO or Apex Clearance"""
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        provider = getattr(request.user, "auth_provider", None)
+        return provider == AuthProvider.PARICHAY or get_user_tier_level(request.user) <= 2
+
+
+class IsGovNetAuthenticated(BasePermission):
+    """Allow direct GovNet Intranet authenticated operators"""
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return True
+
+
 class CanExecuteSimulation(BasePermission):
-    """Authorized to trigger AI scenario blast simulations (Tier 1 or 2)"""
+    """
+    Authorized to trigger AI scenario blast simulations.
+    Requires Tier 1 or 2 (Apex / State SDMA) or Jan Parichay authorization.
+    """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
@@ -75,13 +97,27 @@ class CanExecuteSimulation(BasePermission):
 
 
 class CanAuthorizeEvacuation(BasePermission):
-    """Authorized to approve and sign statutory relocation/evacuation plans"""
+    """
+    Authorized to approve and sign statutory relocation/evacuation plans.
+    Requires Tier 1/2 clearance or Parichay federated credential.
+    """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
         if request.user.is_superuser:
             return True
         return getattr(request.user, "is_state_command", lambda: False)()
+
+
+class CanUpdateShelterTelemetry(BasePermission):
+    """
+    Operational permission for District DEOC & SDRF field responders (GovNet Direct)
+    to update local shelter capacity and submit incident verification forms.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return True
 
 
 class CanManageUsers(BasePermission):

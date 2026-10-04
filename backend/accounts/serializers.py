@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
-from .models import User, OfficialTier
+from .models import User, OfficialTier, AuthProvider
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -19,6 +19,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["assigned_district"] = user.assigned_district or user.district or ""
         token["is_2fa_enrolled"] = user.is_2fa_enrolled
         token["is_approved_by_nodal"] = user.is_approved_by_nodal
+        token["auth_provider"] = getattr(user, "auth_provider", AuthProvider.GOVNET)
+        token["auth_source"] = getattr(user, "auth_provider", AuthProvider.GOVNET)
         return token
 
     def validate(self, attrs):
@@ -32,6 +34,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise AuthenticationFailed(
                 "Your department registration request was rejected by the Disaster Manager. Please reach out to your District Collectorate."
             )
+
+        auth_source = self.initial_data.get("auth_provider", getattr(user, "auth_provider", AuthProvider.GOVNET))
         data["role"] = user.role
         data["approval_status"] = user.approval_status
         data["username"] = user.username
@@ -43,6 +47,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["assigned_district"] = user.assigned_district or user.district or ""
         data["is_2fa_enrolled"] = user.is_2fa_enrolled
         data["is_approved_by_nodal"] = user.is_approved_by_nodal
+        data["auth_provider"] = auth_source
+        data["auth_source"] = auth_source
         return data
 
 
@@ -62,6 +68,7 @@ class UserSerializer(serializers.ModelSerializer):
             "assigned_district",
             "is_2fa_enrolled",
             "is_approved_by_nodal",
+            "auth_provider",
             "approval_status",
             "department",
             "designation",
@@ -90,6 +97,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             "official_id",
             "cadre_designation",
             "assigned_district",
+            "auth_provider",
             "department",
             "designation",
             "district",

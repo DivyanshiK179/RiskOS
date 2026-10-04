@@ -9,6 +9,11 @@ class OfficialTier(models.TextChoices):
     FIELD_RESPONDER = "FIELD_RESPONDER", "Tier 4 - SDRF / Field Officer"
 
 
+class AuthProvider(models.TextChoices):
+    GOVNET = "GOVNET", "GovNet Direct Intranet"
+    PARICHAY = "PARICHAY", "Jan Parichay National SSO"
+
+
 class User(AbstractUser):
     class Role(models.TextChoices):
         DISASTER_MANAGER = "DISASTER_MANAGER", "Disaster Manager (Executive / Nodal Head)"
@@ -32,6 +37,7 @@ class User(AbstractUser):
     assigned_district = models.CharField(max_length=64, blank=True, null=True, help_text="e.g. Chamoli, Rudraprayag")
     is_2fa_enrolled = models.BooleanField(default=True)
     is_approved_by_nodal = models.BooleanField(default=False)
+    auth_provider = models.CharField(max_length=20, choices=AuthProvider.choices, default=AuthProvider.GOVNET)
 
     # Legacy & operational identity fields
     role = models.CharField(max_length=30, choices=Role.choices, default=Role.DEPARTMENT_OFFICER)

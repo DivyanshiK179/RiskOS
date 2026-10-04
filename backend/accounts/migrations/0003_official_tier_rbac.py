@@ -49,4 +49,16 @@ class Migration(migrations.Migration):
             name='is_approved_by_nodal',
             field=models.BooleanField(default=False),
         ),
+        migrations.AddField(
+            model_name='user',
+            name='auth_provider',
+            field=models.CharField(
+                choices=[
+                    ('GOVNET', 'GovNet Direct Intranet'),
+                    ('PARICHAY', 'Jan Parichay National SSO'),
+                ],
+                default='GOVNET',
+                max_length=20,
+            ),
+        ),
     ]
