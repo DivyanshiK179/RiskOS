@@ -2529,47 +2529,6 @@ export default function MapView({
 
             {activeLayerTab === "layers" ? (
               <div className="space-y-3">
-                {/* Basemap Provider Selector Cards */}
-                <div className="space-y-1.5 pb-2.5 border-b border-slate-200 dark:border-slate-700/60">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                      {isHi ? "आधार मानचित्र (Basemap)" : "Basemap Provider"}
-                    </span>
-                    <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 font-mono">
-                      {currentOption.icon} {isHi ? currentOption.hiLabel : currentOption.label}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {BASEMAP_OPTIONS.map((opt) => {
-                      const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => switchBasemap(opt.id as BasemapType)}
-                          className={`group relative flex items-center gap-2 p-1.5 rounded-lg border text-left transition-all ${
-                            isSelected
-                              ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/50 opacity-100 shadow-xs"
-                              : "border-slate-200 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-800/60"
-                          }`}
-                          title={isHi ? opt.hiLabel : opt.label}
-                          aria-label={opt.label}
-                        >
-                          <span className="text-base flex-shrink-0">{opt.icon}</span>
-                          <div className="min-w-0 flex-1">
-                            <span className={`text-[10px] font-bold block truncate leading-tight ${isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"}`}>
-                              {isHi ? opt.hiLabel : opt.label}
-                            </span>
-                            <span className="text-[8.5px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-mono">
-                              {opt.id}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
                 {/* 1. Core Settlements & Safe Shelters */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
