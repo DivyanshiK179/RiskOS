@@ -55,6 +55,7 @@ interface MapViewProps {
   initialShowLandslide?: boolean;
   initialShowFlood?: boolean;
   initialFacility?: string;
+  isPublicView?: boolean;
 }
 
 export type BasemapType = "satellite" | "streets" | "street" | "topo" | "bhuvan";
@@ -219,6 +220,7 @@ export default function MapView({
   initialShowLandslide,
   initialShowFlood,
   initialFacility,
+  isPublicView = false,
 }: MapViewProps) {
   const { t, lang } = useTranslation();
   const isHi = lang === "hi";
@@ -236,10 +238,12 @@ export default function MapView({
   const langRef = useRef(lang);
   const themeRef = useRef(theme);
   const clearanceRoleRef = useRef(clearanceRole);
+  const isPublicViewRef = useRef(isPublicView);
 
   useEffect(() => { langRef.current = lang; }, [lang]);
   useEffect(() => { themeRef.current = theme; }, [theme]);
   useEffect(() => { clearanceRoleRef.current = clearanceRole; }, [clearanceRole]);
+  useEffect(() => { isPublicViewRef.current = isPublicView; }, [isPublicView]);
 
   // Debounced MapLibre canvas resize on panel animations
   useEffect(() => {
@@ -982,6 +986,23 @@ export default function MapView({
               <strong style="color: ${textTitle}; font-size: 12px; font-family: monospace;">${Number(props.population || 0).toLocaleString()}</strong>
             </div>
 
+            ${isPublicViewRef.current ? `
+            <div style="grid-column: span 2; background: ${bgBox}; padding: 6px 8px; border-radius: 6px; border: 1px solid ${borderBox}; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="display:block; font-size: 9px; color: ${textSub}; font-weight: 600; text-transform: uppercase;">
+                  ${isHi ? "नागरिक सुरक्षा परामर्श" : "Citizen Safety Advisory"}
+                </span>
+                <strong style="color: ${color}; font-size: 12px; font-weight: 800;">
+                  ${hazardLvl === "RED" || hazardLvl === "HIGH" 
+                    ? (isHi ? "उच्च सतर्कता क्षेत्र (अलर्ट पर रहें)" : "High Alert Area") 
+                    : hazardLvl === "MODERATE" 
+                    ? (isHi ? "निगरानी स्थिति (सामान्य सतर्कता)" : "Watch Status") 
+                    : (isHi ? "सामान्य क्षेत्र (सुरक्षित)" : "Normal")}
+                </strong>
+              </div>
+              <span style="font-size: 14px;">${hazardLvl === "RED" || hazardLvl === "HIGH" ? "⚠️" : "🛡️"}</span>
+            </div>
+            ` : `
             <div style="background: ${bgBox}; padding: 5px 8px; border-radius: 6px; border: 1px solid ${borderBox};">
               <span style="display:block; font-size: 9px; color: ${textSub}; font-weight: 600; text-transform: uppercase;">
                 ${isHi ? "जोखिम स्कोर" : "Hazard Score"}
@@ -995,6 +1016,7 @@ export default function MapView({
               </span>
               <strong style="color: ${textTitle}; font-size: 12px;">${Number(props.vulnerability_score || 0).toFixed(1)} / 100</strong>
             </div>
+            `}
           </div>
 
           <!-- Actions Stack -->
@@ -1011,7 +1033,7 @@ export default function MapView({
               onclick="window.__rsSelectHab(${id})"
               style="width: 100%; padding: 6px 10px; background: ${isDark ? "#1E3A8A" : "#0B2545"}; color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer;"
             >
-              ${isHi ? "सम्पूर्ण जोखिम प्रोफ़ाइल देखें →" : "Open Detailed Risk Dossier →"}
+              ${isHi ? (isPublicViewRef.current ? "नागरिक प्रोफ़ाइल देखें →" : "सम्पूर्ण जोखिम प्रोफ़ाइल देखें →") : (isPublicViewRef.current ? "View Community Profile →" : "Open Detailed Risk Dossier →")}
             </button>
           </div>
         </div>
@@ -1027,6 +1049,7 @@ export default function MapView({
     const props = feat.properties || {};
     const rem = props.remaining_capacity ?? props.estimated_capacity;
     const isHi = langRef.current === "hi";
+    const isPublic = isPublicViewRef.current;
 
     const facilityTypeLabels: Record<string, { en: string; hi: string; icon: string }> = {
       health: { en: "Emergency Hospital / Medical Center", hi: "आपातकालीन अस्पताल / स्वास्थ्य केंद्र", icon: "🏥" },
@@ -1052,7 +1075,36 @@ export default function MapView({
 
     const popup = new maplibregl.Popup({ offset: 14, closeButton: true, maxWidth: "320px", className: "riskos-popup" })
       .setLngLat(coords as maplibregl.LngLatLike)
-      .setHTML(`
+      .setHTML(isPublic ? `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 6px; background:${bgCard}; color:${textTitle}; border-radius: 8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border-bottom:1px solid ${borderBox};padding-bottom:6px;">
+            <span style="font-size:18px;">${typeInfo.icon}</span>
+            <span style="font-weight:700;color:${textTitle};font-size:13px;line-height:1.2;">${props.name}</span>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:${isDark ? '#34D399' : '#059669'};text-transform:uppercase;margin-bottom:8px;padding:2px 8px;background:${isDark ? '#064E3B44' : '#ECFDF5'};border-radius:4px;display:inline-block;border:1px solid ${isDark ? '#065F46' : '#A7F3D0'};">
+            ${isHi ? typeInfo.hi : typeInfo.en}
+          </div>
+          <table style="width:100%;font-size:11px;border-collapse:collapse;color:${textTitle};">
+            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "जिला" : "District"}</td><td style="padding:4px 0;font-weight:600;text-align:right;">${isHi ? (DISTRICT_NAMES_HI[props.district] || props.district) : props.district}</td></tr>
+            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "स्थिति" : "Status"}</td><td style="padding:4px 0;color:#059669;font-weight:700;text-align:right;">🟢 ${isHi ? "सक्रिय / खुला (Active / Open)" : "Active / Open"}</td></tr>
+            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "सड़क संपर्क" : "Road Connectivity"}</td><td style="padding:4px 0;color:${props.road_access ? '#059669' : '#DC2626'};font-weight:600;text-align:right;">${props.road_access ? (isHi ? 'उपलब्ध (बारहमासी)' : 'All-Weather Accessible') : (isHi ? 'अवरुद्ध / अनुपलब्ध' : 'Temporarily Blocked')}</td></tr>
+            <tr><td style="padding:5px 0 0;color:${textSub};" colspan="2">
+              <div style="font-size:10px;color:${textSub};margin-top:2px;border-top:1px dashed ${borderBox};padding-top:4px;line-height:1.4;">
+                <strong style="color:${textTitle};">${isHi ? "आपातकालीन हेल्पलाइन:" : "Emergency Helpline:"}</strong><br/>
+                ${isHi ? "राज्य आपदा हेल्पलाइन: 1070 • जिला DEOC: 1077 • ERSS: 112" : "State SDMA Helpline: 1070 • District DEOC: 1077 • ERSS: 112"}
+              </div>
+            </td></tr>
+          </table>
+          <a
+            href="https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="margin-top: 8px; width: 100%; padding: 7px 10px; background: #059669; color: white; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box;"
+          >
+            <span>🚗 ${isHi ? "दिशा-निर्देश प्राप्त करें (गूगल मैप्स) ↗" : "Get Directions (Google Maps) ↗"}</span>
+          </a>
+        </div>
+      ` : `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 6px; background:${bgCard}; color:${textTitle}; border-radius: 8px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border-bottom:1px solid ${borderBox};padding-bottom:6px;">
             <span style="font-size:18px;">${typeInfo.icon}</span>
@@ -2128,45 +2180,49 @@ export default function MapView({
             >
               <Layers className="w-4 h-4" />
             </button>
-            <button
-              onClick={toggleMeasurementTool}
-              title={t("map.measure") || "Measure"}
-              aria-label={t("map.measure") || "Distance Measurement Tool"}
-              className={`p-1.5 rounded-lg transition ${
-                measuring
-                  ? "bg-amber-600 text-white shadow-sm"
-                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
-            >
-              <Ruler className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                if (isTargetToolActive) {
-                  setIsTargetToolActive(false);
-                  clearTargetTool();
-                } else {
-                  setIsTargetToolActive(true);
-                }
-              }}
-              title={t("map.targetTool") || "Disaster Epicenter & Hazard Radius Tool"}
-              aria-label={t("map.targetTool") || "Spatial Buffer / Simulation"}
-              className={`p-1.5 rounded-lg transition ${
-                isTargetToolActive
-                  ? "bg-rose-600 text-white shadow-md ring-2 ring-rose-400"
-                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
-            >
-              <Target className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleExportMapViewport}
-              title={t("map.export") || "Export Snapshot"}
-              aria-label={t("map.export") || "Export Map Viewport"}
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition"
-            >
-              <Download className="w-4 h-4" />
-            </button>
+            {!isPublicView && (
+              <>
+                <button
+                  onClick={toggleMeasurementTool}
+                  title={t("map.measure") || "Measure"}
+                  aria-label={t("map.measure") || "Distance Measurement Tool"}
+                  className={`p-1.5 rounded-lg transition ${
+                    measuring
+                      ? "bg-amber-600 text-white shadow-sm"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  <Ruler className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (isTargetToolActive) {
+                      setIsTargetToolActive(false);
+                      clearTargetTool();
+                    } else {
+                      setIsTargetToolActive(true);
+                    }
+                  }}
+                  title={t("map.targetTool") || "Disaster Epicenter & Hazard Radius Tool"}
+                  aria-label={t("map.targetTool") || "Spatial Buffer / Simulation"}
+                  className={`p-1.5 rounded-lg transition ${
+                    isTargetToolActive
+                      ? "bg-rose-600 text-white shadow-md ring-2 ring-rose-400"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  <Target className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleExportMapViewport}
+                  title={t("map.export") || "Export Snapshot"}
+                  aria-label={t("map.export") || "Export Map Viewport"}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -2270,7 +2326,7 @@ export default function MapView({
             { id: "helipad", icon: "🚁", label: "Helipads", key: "facilities.helipads" },
             { id: "ration", icon: "🍞", label: "Relief Ration Depots", key: "facilities.reliefDepots" },
             { id: "siren", icon: "🚨", label: "Alert Sirens", key: "facilities.sirens" },
-          ].map((fac) => {
+          ].filter((fac) => !isPublicView || (fac.id !== "helipad" && fac.id !== "siren")).map((fac) => {
             const facLabel = t(fac.key) || t(fac.label) || fac.label;
             const isActive = selectedFacility === fac.id;
             return (
@@ -2322,18 +2378,20 @@ export default function MapView({
           >
             <Compass className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </button>
-          <button
-            onClick={toggleMeasurementTool}
-            className={`p-2 transition border-b border-slate-200 dark:border-slate-700 ${
-              measuring
-                ? "bg-amber-600 text-white hover:bg-amber-700"
-                : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
-            title={t("measure_tool")}
-            aria-label="Distance Measurement Tool"
-          >
-            <Ruler className="w-4 h-4" />
-          </button>
+          {!isPublicView && (
+            <button
+              onClick={toggleMeasurementTool}
+              className={`p-2 transition border-b border-slate-200 dark:border-slate-700 ${
+                measuring
+                  ? "bg-amber-600 text-white hover:bg-amber-700"
+                  : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+              title={t("measure_tool")}
+              aria-label="Distance Measurement Tool"
+            >
+              <Ruler className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={toggleZenMode}
             className={`p-2 transition border-b border-slate-200 dark:border-slate-700 ${

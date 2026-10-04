@@ -137,6 +137,7 @@ export default function PublicMap() {
             settlementCount={features.length}
             initialShowLandslide={layerParam === "landslide" ? true : undefined}
             initialFacility={filterParam === "shelters" ? "shelter" : undefined}
+            isPublicView={true}
           />
         </div>
 
@@ -286,8 +287,15 @@ export default function PublicMap() {
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                     {t(f.properties.district)}, {f.properties.state}
                   </div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    {t("population")}: {(f.properties.population || 0).toLocaleString()} • {t("hazard_score")}: {(f.properties.hazard_score || 0).toFixed(1)}
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
+                    <span>{t("population")}: {(f.properties.population || 0).toLocaleString()}</span>
+                    <span className="font-semibold text-slate-600 dark:text-slate-300">
+                      {f.properties.hazard_level === "RED" || f.properties.hazard_level === "HIGH"
+                        ? (lang === "hi" ? "उच्च सतर्कता क्षेत्र" : "High Alert Area")
+                        : f.properties.hazard_level === "MODERATE"
+                        ? (lang === "hi" ? "निगरानी क्षेत्र" : "Watch Status")
+                        : (lang === "hi" ? "सामान्य क्षेत्र" : "Normal")}
+                    </span>
                   </div>
                 </div>
               </button>
@@ -301,6 +309,7 @@ export default function PublicMap() {
             habitationId={selectedId}
             onClose={() => setSelectedId(null)}
             isOfficial={false}
+            isPublic={true}
           />
         )}
       </div>

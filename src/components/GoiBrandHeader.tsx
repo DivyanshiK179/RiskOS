@@ -115,7 +115,7 @@ export default function GoiBrandHeader({
                   जोखिम ओएस
                 </span>
                 <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  {t("GOVERNMENT OF INDIA • STATUTORY SDMA PORTAL")}
+                  {isPublic ? (lang === "hi" ? "सार्वजनिक नागरिक पोर्टल • उत्तराखंड एसडीएमए" : "🇮🇳 Public Citizen Portal • Uttarakhand SDMA") : t("GOVERNMENT OF INDIA • STATUTORY SDMA PORTAL")}
                 </span>
               </div>
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
@@ -179,7 +179,7 @@ export default function GoiBrandHeader({
             </div>
             <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {t("header.officialPortal")}
+              {isPublic ? (lang === "hi" ? "सार्वजनिक नागरिक पोर्टल • उत्तराखंड एसडीएमए" : "🇮🇳 Public Citizen Portal • Uttarakhand SDMA") : t("header.officialPortal")}
             </span>
           </div>
 
@@ -187,18 +187,25 @@ export default function GoiBrandHeader({
           {accessToken ? (
             <div className="flex items-center gap-3">
               {/* Official Officer Status Badge */}
-              <div className="hidden sm:flex flex-col text-right">
-                <div className="flex items-center gap-1.5 justify-end">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-300 dark:ring-emerald-950" title={t("header.officialBadge")} />
-                  <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                    {displayName}
+              {!isPublic ? (
+                <div className="hidden sm:flex flex-col text-right">
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-300 dark:ring-emerald-950" title={t("header.officialBadge")} />
+                    <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                      {displayName}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                    {t("header.officerRole")}
                   </span>
                 </div>
-                <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
-                  {t("header.officerRole")}
-                </span>
-              </div>
+              ) : (
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-medium">
+                  <User className="w-3.5 h-3.5" />
+                  <span className="truncate max-w-[120px] font-semibold">{displayName}</span>
+                </div>
+              )}
 
               {isPublic && (
                 <button
