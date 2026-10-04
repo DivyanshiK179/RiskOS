@@ -23,6 +23,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [govnetOtp, setGovnetOtp] = useState("839201");
 
   // Jan Parichay National SSO state
   const [parichayId, setParichayId] = useState("");
@@ -252,9 +253,21 @@ export default function Login() {
 
             {loginMode === "govnet" ? (
               <form onSubmit={handleSubmit} className="space-y-2.5">
+                <div className="p-2 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-lg text-xs space-y-0.5">
+                  <span className="font-bold text-blue-900 dark:text-blue-300 block flex items-center gap-1.5 text-[11px]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>GovNet Direct Intranet • Local Operations</span>
+                  </span>
+                  <p className="text-[10px] text-blue-800 dark:text-blue-400 leading-tight">
+                    {isHi
+                      ? "स्थानीय नियंत्रण कक्ष, डीईओसी ऑपरेटर एवं एसडीआरएफ फील्ड इकाइयों हेतु सुरक्षित इंट्रानेट एक्सेस"
+                      : "Tactical local control room operations, field shelter logs & district asset tracking."}
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    {isHi ? "उपयोगकर्ता नाम (Username)" : "Official Username"}
+                    {isHi ? "विभागीय अधिकारी पहचान (Department Official ID) *" : "Department Official ID *"}
                   </label>
                   <div className="relative">
                     <User className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
@@ -263,7 +276,7 @@ export default function Login() {
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="e.g. official"
+                      placeholder="e.g. UK-SDMA-DEOC-104 or username"
                       autoComplete="username"
                       className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
@@ -272,7 +285,7 @@ export default function Login() {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    {isHi ? "पासवर्ड (Password)" : "Password"}
+                    {isHi ? "विभागीय पासवर्ड (Password) *" : "Password *"}
                   </label>
                   <div className="relative">
                     <Lock className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
@@ -284,6 +297,24 @@ export default function Login() {
                       placeholder="••••••••••••"
                       autoComplete="current-password"
                       className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    {isHi ? "6-अंकीय आपातकालीन प्रमाणीकरण कोड (OTP) *" : "6-Digit Authenticator / Emergency SMS OTP *"}
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={govnetOtp}
+                      onChange={(e) => setGovnetOtp(e.target.value)}
+                      placeholder="839201"
+                      className="w-full pl-8 pr-3 py-1.5 text-xs font-mono tracking-widest bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
                 </div>
@@ -300,45 +331,24 @@ export default function Login() {
                     </>
                   ) : (
                     <>
-                      <span>{t("Sign In to Command Center")}</span>
+                      <span>{isHi ? "गोवनेट डायरेक्ट लॉगिन" : "Sign In via GovNet Direct Intranet"}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </>
                   )}
                 </button>
 
-                {/* Pre-configured Official Accounts Quick Fill Box (4-Tier GoI NDMA/SDMA Architecture) */}
+                {/* Pre-configured GovNet Cadres Quick Fill (Tier 3 & 4) */}
                 <div className="p-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1 mt-1">
                   <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                    {isHi ? "पूर्व-कॉन्फ़िगर आधिकारिक कमान खाते (4-स्तरीय):" : "Statutory Command Tiers Quick-Fill (4 Tiers):"}
+                    {isHi ? "गोवनेट त्वरित खाते (स्थानीय कैडर):" : "GovNet Local Operational Cadres:"}
                   </span>
                   <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                     <button
                       type="button"
                       onClick={() => {
-                        setUsername("ndma");
-                        setPassword("Apex@NDMA2026");
-                      }}
-                      className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-purple-200 dark:border-purple-900/60 text-left hover:border-purple-500 transition cursor-pointer"
-                    >
-                      <span className="font-bold text-purple-700 dark:text-purple-400 block truncate text-[10.5px]">Tier 1: NDMA Apex</span>
-                      <span className="text-[9px] font-mono text-slate-500 block truncate">ndma / Apex@NDMA2026</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUsername("official");
-                        setPassword("RiskSetu@2026");
-                      }}
-                      className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-blue-200 dark:border-blue-900/60 text-left hover:border-blue-500 transition cursor-pointer"
-                    >
-                      <span className="font-bold text-blue-700 dark:text-blue-400 block truncate text-[10.5px]">Tier 2: State SDMA</span>
-                      <span className="text-[9px] font-mono text-slate-500 block truncate">official / RiskSetu@2026</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
                         setUsername("superadmin");
                         setPassword("Admin@RS2026");
+                        setGovnetOtp("839201");
                       }}
                       className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-amber-200 dark:border-amber-900/60 text-left hover:border-amber-500 transition cursor-pointer"
                     >
@@ -350,6 +360,7 @@ export default function Login() {
                       onClick={() => {
                         setUsername("sdrf");
                         setPassword("Sdrf@2026");
+                        setGovnetOtp("839201");
                       }}
                       className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-emerald-200 dark:border-emerald-900/60 text-left hover:border-emerald-500 transition cursor-pointer"
                     >
@@ -357,10 +368,13 @@ export default function Login() {
                       <span className="text-[9px] font-mono text-slate-500 block truncate">sdrf / Sdrf@2026</span>
                     </button>
                   </div>
+                  <span className="text-[9px] text-slate-400 block pt-0.5">
+                    * Scoped strictly to assigned district & field telemetry. 4-hour intranet session timeout.
+                  </span>
                 </div>
               </form>
             ) : (
-              /* Jan Parichay National Single Sign-On (MeriPehchaan) Flow */
+              /* Jan Parichay National Single Sign-On (MeriPehchaan) Flow - Apex & State Command */
               <div className="space-y-2.5">
                 <div className="p-2 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-lg text-xs space-y-0.5">
                   <span className="font-bold text-amber-800 dark:text-amber-300 block flex items-center gap-1.5 text-[11px]">
@@ -368,8 +382,8 @@ export default function Login() {
                   </span>
                   <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-tight">
                     {isHi
-                      ? "भारत सरकार का राष्ट्रीय सिंगल साइन-ऑन (2-चरणीय बायोमेट्रिक/ओटीपी सत्यापन)"
-                      : "National Single Sign-On for Government Officers with statutory 2-Factor Authentication."}
+                      ? "राष्ट्रीय एवं राज्य आपदा कमान (एनडीएमए शीर्ष निदेशक व राज्य एसडीएमए सचिव) हेतु राष्ट्रीय सिंगल साइन-ऑन"
+                      : "Federated gateway for State Secretaries & NDMA Apex Command. Grants statewide evacuation authorization, CAP alerts, and AI blast simulation."}
                   </p>
                 </div>
 
@@ -377,19 +391,17 @@ export default function Login() {
                   <form onSubmit={handleSendParichayOtp} className="space-y-2.5">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-0.5">
-                        {isHi ? "एनडीएमए सांविधिक कमान स्तर (Administrative Tier)" : "Statutory Command Tier & Clearance"}
+                        {isHi ? "सांविधिक कमान स्तर (Executive Clearance Tier) *" : "Executive Clearance Tier *"}
                       </label>
                       <select
                         value={parichayTier}
                         onChange={(e) => {
                           const t = e.target.value as OfficialTier;
                           setParichayTier(t);
-                          if (t === "NATIONAL_NDMA") setParichayRole("DEOC_OPERATOR");
-                          else if (t === "STATE_SDMA") setParichayRole("DEOC_OPERATOR");
-                          else if (t === "DISTRICT_DEOC") setParichayRole("DISTRICT_MAGISTRATE");
-                          else if (t === "FIELD_RESPONDER") setParichayRole("SDRF_COMMANDER");
+                          if (t === "NATIONAL_NDMA") setParichayRole("DISTRICT_MAGISTRATE");
+                          else setParichayRole("DEOC_OPERATOR");
                         }}
-                        className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                       >
                         <option value="NATIONAL_NDMA">
                           {isHi ? "टियर 1: एनडीएमए शीर्ष निदेशक / राष्ट्रीय कमान" : "Tier 1: NDMA Apex Director / National Command"}
@@ -397,18 +409,12 @@ export default function Login() {
                         <option value="STATE_SDMA">
                           {isHi ? "टियर 2: एसईओसी राज्य अधिकारी / एसडीएमए सचिवालय" : "Tier 2: SEOC State Officer / SDMA Secretariat"}
                         </option>
-                        <option value="DISTRICT_DEOC">
-                          {isHi ? "टियर 3: जिला मजिस्ट्रेट (डीएम) / डीईओसी नोडल" : "Tier 3: District Magistrate / DEOC Nodal Officer"}
-                        </option>
-                        <option value="FIELD_RESPONDER">
-                          {isHi ? "टियर 4: एसडीआरएफ फील्ड कमांडर / फील्ड दस्ता" : "Tier 4: SDRF Field Commander / Field Responder"}
-                        </option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-0.5">
-                        {isHi ? "परिचय आईडी / सरकारी ईमेल" : "Parichay Officer Email / Mobile"}
+                        {isHi ? "परिचय आईडी / आधिकारिक सरकारी ईमेल (@gov.in / @nic.in) *" : "Official Gov SSO Email (@gov.in / @nic.in) *"}
                       </label>
                       <div className="relative">
                         <User className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
@@ -417,7 +423,7 @@ export default function Login() {
                           required
                           value={parichayId}
                           onChange={(e) => setParichayId(e.target.value)}
-                          placeholder="e.g. dm.dehradun@gov.in"
+                          placeholder="e.g. director.ndma@gov.in or seoc.head@uk.gov.in"
                           className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
                       </div>
@@ -433,10 +439,43 @@ export default function Login() {
                       ) : (
                         <>
                           <Smartphone className="w-3.5 h-3.5" />
-                          <span>{isHi ? "2FA ओटीपी भेजें" : "Send Jan Parichay 2FA OTP"}</span>
+                          <span>{isHi ? "मेरी पहचान एसएसओ से आगे बढ़ें →" : "Continue with MeriPehchaan / Parichay SSO →"}</span>
                         </>
                       )}
                     </button>
+
+                    {/* Pre-configured Apex / State SSO Quick Fill */}
+                    <div className="p-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1 mt-1">
+                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                        {isHi ? "एसएसओ त्वरित कमान क्रेडेंशियल:" : "Parichay Executive SSO Credentials:"}
+                      </span>
+                      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setParichayTier("NATIONAL_NDMA");
+                            setParichayId("director.ndma@gov.in");
+                            setParichayRole("DISTRICT_MAGISTRATE");
+                          }}
+                          className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-purple-200 dark:border-purple-900/60 text-left hover:border-purple-500 transition cursor-pointer"
+                        >
+                          <span className="font-bold text-purple-700 dark:text-purple-400 block truncate text-[10.5px]">Tier 1: NDMA Apex</span>
+                          <span className="text-[9px] font-mono text-slate-500 block truncate">director.ndma@gov.in</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setParichayTier("STATE_SDMA");
+                            setParichayId("seoc.head@uk.gov.in");
+                            setParichayRole("DEOC_OPERATOR");
+                          }}
+                          className="p-1.5 rounded bg-white dark:bg-[#131e36] border border-blue-200 dark:border-blue-900/60 text-left hover:border-blue-500 transition cursor-pointer"
+                        >
+                          <span className="font-bold text-blue-700 dark:text-blue-400 block truncate text-[10.5px]">Tier 2: State SDMA</span>
+                          <span className="text-[9px] font-mono text-slate-500 block truncate">seoc.head@uk.gov.in</span>
+                        </button>
+                      </div>
+                    </div>
                   </form>
                 ) : (
                   <form onSubmit={handleVerifyParichayOtp} className="space-y-2.5">

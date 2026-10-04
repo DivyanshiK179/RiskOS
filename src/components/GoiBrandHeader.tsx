@@ -17,7 +17,7 @@ export default function GoiBrandHeader({
   showNav = false,
   activeNav = "",
 }: GoiBrandHeaderProps) {
-  const { accessToken, username, user, logout, is2FAVerified, officialTier } = useAuthStore();
+  const { accessToken, username, user, logout, is2FAVerified, officialTier, authProvider } = useAuthStore();
   const isAuthenticated = Boolean(accessToken);
   const { t, lang } = useTranslation();
   const navigate = useNavigate();
@@ -198,12 +198,35 @@ export default function GoiBrandHeader({
                 </div>
                 <div className="flex items-center justify-end gap-1 text-[9.5px] mt-0.5">
                   {(() => {
-                    const activeTier = user?.tier || officialTier || "STATE_SDMA";
+                    const effectiveProvider = user?.auth_provider || authProvider || (
+                      (user?.tier === "NATIONAL_NDMA" || user?.tier === "STATE_SDMA" || officialTier === "NATIONAL_NDMA" || officialTier === "STATE_SDMA")
+                        ? "PARICHAY"
+                        : "GOVNET"
+                    );
+                    const activeTier = user?.tier || officialTier || (effectiveProvider === "PARICHAY" ? "STATE_SDMA" : "DISTRICT_DEOC");
                     const meta = TIER_METADATA[activeTier] || TIER_METADATA.STATE_SDMA;
+                    const isParichay = effectiveProvider === "PARICHAY";
+
                     return (
                       <>
-                        <span className={`px-1.5 py-0.5 rounded font-bold text-[8.5px] border ${meta.badgeClass}`}>
-                          {meta.shortTitle}
+                        <span
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[8.5px] border ${
+                            isParichay
+                              ? "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                              : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                          }`}
+                        >
+                          {isParichay ? (
+                            <>
+                              <span>🇮🇳</span>
+                              <span>Jan Parichay (SSO) • {meta.shortTitle}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span>GovNet Direct • {meta.shortTitle}</span>
+                            </>
+                          )}
                         </span>
                         <span className="text-slate-500 dark:text-slate-400 font-medium">
                           • {user?.assigned_district || user?.district || "Uttarakhand"}

@@ -251,7 +251,7 @@ export default function Dashboard() {
   ];
 
   const qc = useQueryClient();
-  const { user, username, fetchProfile, clearanceRole, officialTier } = useAuthStore();
+  const { user, username, fetchProfile, clearanceRole, officialTier, authProvider } = useAuthStore();
   const isManager = clearanceRole === "DISTRICT_MAGISTRATE" || user?.role === "SUPERADMIN";
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
@@ -1550,24 +1550,47 @@ export default function Dashboard() {
                     <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center justify-between">
                       <span>{t("NDMA Clearance Tier")}</span>
                       {(() => {
+                        const effectiveProvider = user?.auth_provider || authProvider || (
+                          (user?.tier === "NATIONAL_NDMA" || user?.tier === "STATE_SDMA" || officialTier === "NATIONAL_NDMA" || officialTier === "STATE_SDMA")
+                            ? "PARICHAY"
+                            : "GOVNET"
+                        );
+                        return effectiveProvider === "PARICHAY" ? (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                            <span>🇮🇳</span> Jan Parichay (SSO)
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> GovNet Direct
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white mt-1.5 truncate flex items-center justify-between">
+                      <span>
+                        {(() => {
+                          const activeTier = user?.tier || officialTier || "STATE_SDMA";
+                          const meta = TIER_METADATA[activeTier] || TIER_METADATA.STATE_SDMA;
+                          return isHi ? meta.titleHi : meta.titleEn;
+                        })()}
+                      </span>
+                      {(() => {
                         const activeTier = user?.tier || officialTier || "STATE_SDMA";
                         const meta = TIER_METADATA[activeTier] || TIER_METADATA.STATE_SDMA;
                         return (
-                          <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold border ${meta.badgeClass}`}>
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold border ${meta.badgeClass}`}>
                             {meta.shortTitle}
                           </span>
                         );
                       })()}
                     </div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white mt-1.5 truncate">
-                      {(() => {
-                        const activeTier = user?.tier || officialTier || "STATE_SDMA";
-                        const meta = TIER_METADATA[activeTier] || TIER_METADATA.STATE_SDMA;
-                        return isHi ? meta.titleHi : meta.titleEn;
-                      })()}
-                    </div>
                     <div className="text-[10px] text-amber-600 font-semibold mt-0.5 flex items-center justify-between">
-                      <span>{displayName} • 2FA Active</span>
+                      <span>
+                        {displayName} • {(() => {
+                          const effectiveProvider = user?.auth_provider || authProvider || "GOVNET";
+                          return effectiveProvider === "PARICHAY" ? "Jan Parichay (National SSO 2.0)" : "GovNet Direct (Intranet Bound)";
+                        })()}
+                      </span>
                       <span className="text-slate-400 font-mono text-[9px]">{user?.official_id || user?.employee_id || "UK-DMA-SECURE"}</span>
                     </div>
                   </div>
