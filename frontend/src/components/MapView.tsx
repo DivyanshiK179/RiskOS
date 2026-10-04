@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { toPng } from "html-to-image";
 import { getHabitations } from "../api/habitations";
 import { getSafeSites } from "../api/safesites";
 import * as turf from "@turf/turf";
@@ -442,21 +443,110 @@ export default function MapView({
     }
   };
 
-  const handleExportMapViewport = () => {
-    if (!mapRef.current) return;
+  const handleDownloadMap = async () => {
+    // Target the main map container DOM element
+    const mapElement =
+      (document.querySelector(".leaflet-container") as HTMLElement) ||
+      document.getElementById("map-container") ||
+      (document.querySelector(".maplibregl-map") as HTMLElement) ||
+      mapContainer.current;
+
+    const map = mapRef.current;
+
+    if (!mapElement && !map) {
+      console.error("Map container not found for export");
+      return;
+    }
+
     try {
-      const canvas = mapRef.current.getCanvas();
-      const dataUrl = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `riskos-map-inspection-${new Date().toISOString().slice(0, 10)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch {
-      handleExportData();
+      // Force repaint so WebGL drawing buffer is freshly rendered in preserveDrawingBuffer
+      if (map) {
+        map.triggerRepaint();
+        await new Promise<void>((resolve) => {
+          map.once("render", () => resolve());
+          setTimeout(resolve, 200);
+        });
+      }
+
+      // Filter out unwanted interactive UI buttons from the exported image
+      const filter = (node: HTMLElement | Node) => {
+        if (!(node instanceof HTMLElement)) return true;
+        const exclusionClasses = [
+          "leaflet-control-zoom",
+          "leaflet-control-attribution",
+          "gis-toolbar",
+          "basemap-floating-card",
+          "maplibregl-ctrl",
+          "maplibregl-ctrl-top-right",
+          "maplibregl-ctrl-bottom-right",
+          "maplibregl-ctrl-bottom-left",
+          "maplibregl-ctrl-top-left",
+          "map-controls",
+          "map-action-dock"
+        ];
+        return !exclusionClasses.some((cls) => node.classList?.contains(cls));
+      };
+
+      let dataUrl: string | null = null;
+
+      if (mapElement) {
+        try {
+          dataUrl = await toPng(mapElement, {
+            cacheBust: true,
+            filter: filter as (domNode: HTMLElement) => boolean,
+            pixelRatio: 2, // High resolution crisp export
+          });
+        } catch (err) {
+          console.warn("toPng map export encountered issue, falling back to WebGL canvas:", err);
+        }
+      }
+
+      // If toPng returned a blank or failed or was empty, fallback to WebGL canvas directly
+      if (!dataUrl || dataUrl === "data:," || dataUrl.length < 1000) {
+        if (map && typeof map.getCanvas === "function") {
+          map.triggerRepaint();
+          const canvas = map.getCanvas();
+          dataUrl = canvas.toDataURL("image/png");
+        }
+      }
+
+      if (dataUrl && dataUrl !== "data:," && dataUrl.length > 100) {
+        const downloadLink = document.createElement("a");
+        const timestamp = new Date().toISOString().split("T")[0];
+        downloadLink.download = `riskos-map-inspection-${timestamp}.png`;
+        downloadLink.href = dataUrl;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      } else {
+        handleExportData();
+      }
+    } catch (error) {
+      console.error("Failed to generate map image export:", error);
+
+      // Fallback for MapLibre / WebGL context if using MapLibre GL
+      if (map && typeof map.getCanvas === "function") {
+        try {
+          map.triggerRepaint();
+          const canvas = map.getCanvas();
+          const dataUrl = canvas.toDataURL("image/png");
+          const downloadLink = document.createElement("a");
+          const timestamp = new Date().toISOString().split("T")[0];
+          downloadLink.download = `riskos-map-inspection-${timestamp}.png`;
+          downloadLink.href = dataUrl;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        } catch {
+          handleExportData();
+        }
+      } else {
+        handleExportData();
+      }
     }
   };
+
+  const handleExportMapViewport = handleDownloadMap;
 
   const handleExportData = () => {
     const dataToExport = habitationsData || {
@@ -2000,7 +2090,7 @@ export default function MapView({
 
   return (
     <div className="relative w-full h-full select-none overflow-hidden group">
-      <div ref={mapContainer} className="w-full h-full" />
+      <div ref={mapContainer} id="map-container" className="w-full h-full" />
 
       {/* ━━━ LAYER 1: Dedicated Top Action Dock (Floated at top-3) ━━━ */}
       <div className="absolute top-2 sm:top-3 left-2 sm:left-4 right-2 sm:right-4 z-30 flex items-center justify-between pointer-events-none gap-2">
