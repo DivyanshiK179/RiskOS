@@ -261,6 +261,7 @@ export default function MapView({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [activeBasemap, setActiveBasemap] = useState<BasemapType>("satellite");
   const [basemapDropdownOpen, setBasemapDropdownOpen] = useState(false);
+  const [isBasemapMenuOpen, setIsBasemapMenuOpen] = useState(false);
 
   const currentOption = BASEMAP_OPTIONS.find(
     (b) => b.id === activeBasemap || (b.id === "streets" && activeBasemap === "street")
@@ -2651,37 +2652,63 @@ export default function MapView({
       )}
 
       {/* Basemap Quick-Preview Thumb Cards (Bottom Right, BharatMaps Style) */}
-      <div className="absolute bottom-10 right-4 z-20">
-        <div className="flex items-center gap-1.5 p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-2xl">
-          {BASEMAP_OPTIONS.map((opt) => {
-            const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => switchBasemap(opt.id as BasemapType)}
-                className={`relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border transition-all ${
-                  isSelected
-                    ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md scale-102"
-                    : "border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50/80 dark:bg-slate-800/80"
-                }`}
-                title={`Select ${isHi ? opt.hiLabel : opt.label}`}
-                aria-label={opt.label}
-              >
-                <div className="w-full flex-1 flex items-center justify-center">
-                  <span className="text-base select-none">{opt.icon}</span>
-                </div>
-                {/* Single legible badge/label beneath the icon (no duplicated text) */}
-                <span
-                  className={`text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight ${
-                    isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"
+      <div
+        className="absolute bottom-10 right-4 z-20"
+        onMouseLeave={() => setIsBasemapMenuOpen(false)}
+      >
+        <div className="flex items-center gap-1.5 p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-2xl transition-all">
+          {!isBasemapMenuOpen ? (
+            /* Active-Only Single Card Display in Collapsed State */
+            <button
+              type="button"
+              onClick={() => setIsBasemapMenuOpen(true)}
+              onMouseEnter={() => setIsBasemapMenuOpen(true)}
+              className="relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md transition-all hover:scale-105 cursor-pointer"
+              title={`Basemap: ${isHi ? currentOption.hiLabel : currentOption.label} (Click to switch)`}
+              aria-label={`Current basemap: ${currentOption.label}`}
+            >
+              <div className="w-full flex-1 flex items-center justify-center">
+                <span className="text-base select-none">{currentOption.icon}</span>
+              </div>
+              <span className="text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight text-blue-700 dark:text-blue-300 font-extrabold uppercase">
+                {currentOption.id === "bhuvan" ? "BHUVAN" : currentOption.id === "satellite" ? "SATELLITE" : currentOption.id === "topo" ? "TOPO" : "STREETS"}
+              </span>
+            </button>
+          ) : (
+            /* Expanded Multi-Option Selector */
+            BASEMAP_OPTIONS.map((opt) => {
+              const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    switchBasemap(opt.id as BasemapType);
+                    setIsBasemapMenuOpen(false);
+                  }}
+                  className={`relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border transition-all cursor-pointer ${
+                    isSelected
+                      ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md scale-102"
+                      : "border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50/80 dark:bg-slate-800/80"
                   }`}
+                  title={`Select ${isHi ? opt.hiLabel : opt.label}`}
+                  aria-label={opt.label}
                 >
-                  {opt.id === "bhuvan" ? "BHUVAN" : opt.id === "satellite" ? "SATELLITE" : opt.id === "topo" ? "TOPO" : "STREETS"}
-                </span>
-              </button>
-            );
-          })}
+                  <div className="w-full flex-1 flex items-center justify-center">
+                    <span className="text-base select-none">{opt.icon}</span>
+                  </div>
+                  {/* Single legible badge/label beneath the icon */}
+                  <span
+                    className={`text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight ${
+                      isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    {opt.id === "bhuvan" ? "BHUVAN" : opt.id === "satellite" ? "SATELLITE" : opt.id === "topo" ? "TOPO" : "STREETS"}
+                  </span>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 
