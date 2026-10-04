@@ -13,7 +13,6 @@ import {
   ZoomIn,
   ZoomOut,
   Layers,
-  ChevronDown,
   ChevronUp,
   Ruler,
   Navigation,
@@ -261,7 +260,6 @@ export default function MapView({
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [activeBasemap, setActiveBasemap] = useState<BasemapType>("satellite");
-  const [basemapDropdownOpen, setBasemapDropdownOpen] = useState(false);
   const [isBasemapMenuOpen, setIsBasemapMenuOpen] = useState(false);
 
   const currentOption = BASEMAP_OPTIONS.find(
@@ -1804,7 +1802,6 @@ export default function MapView({
   const switchBasemap = (type: BasemapType | string) => {
     const targetType = type as BasemapType;
     setActiveBasemap(targetType);
-    setBasemapDropdownOpen(false);
     if (!mapRef.current) return;
 
     const m = mapRef.current;
@@ -2205,57 +2202,9 @@ export default function MapView({
           </div>
         </div>
 
-        {/* RIGHT: Standalone Basemap Switcher & Settlement Analytics Drawer Toggle */}
-        <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto shrink-0">
-          {/* Basemap Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setBasemapDropdownOpen(!basemapDropdownOpen)}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 text-xs font-semibold rounded-xl bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
-              title={`Active Basemap: ${currentOption.label}`}
-              aria-label="Basemap Selector Trigger"
-            >
-              <span className="text-sm">{currentOption.icon}</span>
-              <span className="hidden sm:inline font-bold">
-                {isHi ? currentOption.hiLabel : currentOption.label}
-              </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${basemapDropdownOpen ? "rotate-180" : ""}`} />
-            </button>
-
-            {basemapDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-2xl p-2 z-40 space-y-1 text-xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1 block">
-                  {isHi ? "आधार मानचित्र का चयन" : "Select Basemap Layer"}
-                </span>
-                {BASEMAP_OPTIONS.map((opt) => {
-                  const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => {
-                        switchBasemap(opt.id as BasemapType);
-                        setBasemapDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
-                        isSelected
-                          ? "bg-blue-600 text-white font-bold"
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>{opt.icon}</span>
-                        <span>{isHi ? opt.hiLabel : opt.label}</span>
-                      </span>
-                      {isSelected && <span className="text-[10px]">✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Settlement Analytics Drawer Button */}
-          {onToggleAnalytics && (
+        {/* RIGHT: Settlement Analytics Drawer Toggle */}
+        {onToggleAnalytics && (
+          <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto shrink-0">
             <button
               onClick={onToggleAnalytics}
               className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 text-xs font-semibold rounded-xl shadow-xl transition whitespace-nowrap ${
@@ -2270,8 +2219,8 @@ export default function MapView({
                 {(settlementCount ?? 13967).toLocaleString()}
               </span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ━━━ LAYER 2: Dedicated Facility Filter Ribbon (Floated at top-16) ━━━ */}
