@@ -44,6 +44,7 @@ import ProfileSecurityPanel from "../components/ProfileSecurityPanel";
 import AnalyticsView from "../components/AnalyticsView";
 import GoiTopBar from "../components/GoiTopBar";
 import GoiBrandHeader from "../components/GoiBrandHeader";
+import GoiFooter from "../components/GoiFooter";
 import { useTranslation } from "../i18n/translations";
 import { STATUTORY_AUDIT_LEDGER } from "../lib/auditCrypto";
 import type {
@@ -230,7 +231,10 @@ export default function Dashboard() {
       }
     }
 
-    setIsTargetToolActive(false);
+    const qTarget = searchParams.get("target");
+    if (qTarget === "true" || qTab === "simulation" || qTab === "simulate" || dashboardPreconfig?.tab === "simulation") {
+      setIsTargetToolActive(true);
+    }
 
     if (dashboardPreconfig) {
       setDashboardPreconfig(null);
@@ -1487,6 +1491,9 @@ export default function Dashboard() {
                   </a>
                 </div>
               </div>
+              <div className="mt-8">
+                <GoiFooter />
+              </div>
             </div>
           )}
 
@@ -1606,6 +1613,10 @@ export default function Dashboard() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+
+                <div className="mt-12">
+                  <GoiFooter />
                 </div>
               </div>
             </div>

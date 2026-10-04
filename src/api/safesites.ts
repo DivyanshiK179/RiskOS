@@ -1,33 +1,55 @@
 import client from "./client";
 import type { SafeSiteGeoJSON } from "../types";
 
+let cachedStaticSites: SafeSiteGeoJSON | null = null;
+
+async function loadStaticSafeSites(): Promise<SafeSiteGeoJSON | null> {
+  if (cachedStaticSites && cachedStaticSites.features?.length > 0) {
+    return cachedStaticSites;
+  }
+  try {
+    const res = await fetch("/data/safesites.json");
+    if (res.ok) {
+      cachedStaticSites = await res.json();
+      return cachedStaticSites;
+    }
+  } catch (err) {
+    console.error("Failed to load /data/safesites.json fallback:", err);
+  }
+  return null;
+}
+
 export async function getSafeSites(params?: { district?: string; type?: string }): Promise<SafeSiteGeoJSON> {
   try {
     const res = await client.get<SafeSiteGeoJSON>("/geodata/safesites/", { params });
-    if (res.data?.features && res.data.features.length > 0) {
+    if (res.data && Array.isArray(res.data.features) && res.data.features.length > 0) {
       return res.data;
     }
-    throw new Error("No safe site features returned from backend");
-  } catch (err) {
-    console.warn("Live safe sites backend query failed/unreachable. Loading authoritative offline GeoJSON layer:", err);
-    try {
-      const fallback = await fetch("/data/safesites.json");
-      if (!fallback.ok) throw new Error(`HTTP error ${fallback.status}`);
-      const data: SafeSiteGeoJSON = await fallback.json();
-      if (params?.district || params?.type) {
-        const filteredFeatures = data.features.filter((f) => {
-          if (params.district && f.properties.district?.toLowerCase() !== params.district.toLowerCase()) return false;
-          if (params.type && f.properties.facility_type !== params.type) return false;
-          return true;
-        });
-        return { ...data, features: filteredFeatures };
-      }
-      return data;
-    } catch (fallbackErr) {
-      console.error("Failed to load static safe sites dataset:", fallbackErr);
-      throw err;
-    }
+  } catch {
+    // API failed or offline - fall through to bundled static dataset
   }
+
+  const staticData = await loadStaticSafeSites();
+  if (staticData && Array.isArray(staticData.features)) {
+    let filtered = staticData.features;
+    if (params?.district && params.district.trim()) {
+      const d = params.district.toLowerCase().trim();
+      filtered = filtered.filter((f) => (f.properties?.district || "").toLowerCase().trim() === d);
+    }
+    if (params?.type && params.type !== "all") {
+      const t = params.type.toLowerCase().trim();
+      filtered = filtered.filter(
+        (f) =>
+          ((f.properties as any)?.facility_type || (f.properties as any)?.type || "").toLowerCase().trim() === t
+      );
+    }
+    return {
+      type: "FeatureCollection",
+      features: filtered,
+    };
+  }
+
+  return { type: "FeatureCollection", features: [] };
 }
 
 export async function createSafeSite(data: {

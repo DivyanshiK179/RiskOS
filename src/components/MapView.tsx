@@ -55,14 +55,13 @@ interface MapViewProps {
   initialShowLandslide?: boolean;
   initialShowFlood?: boolean;
   initialFacility?: string;
-  isPublicView?: boolean;
 }
 
 export type BasemapType = "satellite" | "streets" | "street" | "topo" | "bhuvan";
 
 export const BASEMAP_OPTIONS = [
-  { id: "bhuvan", label: "ISRO Bhuvan", icon: "🛰️", hiLabel: "इसरो भुवन" },
   { id: "satellite", label: "Satellite Hybrid", icon: "🛰️", hiLabel: "उपग्रह हाइब्रिड" },
+  { id: "bhuvan", label: "ISRO Bhuvan", icon: "🛰️", hiLabel: "इसरो भुवन" },
   { id: "topo", label: "Topographic", icon: "🗺️", hiLabel: "स्थलाकृतिक" },
   { id: "streets", label: "Street Map", icon: "🛣️", hiLabel: "सड़क मानचित्र" },
 ];
@@ -220,7 +219,6 @@ export default function MapView({
   initialShowLandslide,
   initialShowFlood,
   initialFacility,
-  isPublicView = false,
 }: MapViewProps) {
   const { t, lang } = useTranslation();
   const isHi = lang === "hi";
@@ -238,12 +236,10 @@ export default function MapView({
   const langRef = useRef(lang);
   const themeRef = useRef(theme);
   const clearanceRoleRef = useRef(clearanceRole);
-  const isPublicViewRef = useRef(isPublicView);
 
   useEffect(() => { langRef.current = lang; }, [lang]);
   useEffect(() => { themeRef.current = theme; }, [theme]);
   useEffect(() => { clearanceRoleRef.current = clearanceRole; }, [clearanceRole]);
-  useEffect(() => { isPublicViewRef.current = isPublicView; }, [isPublicView]);
 
   // Debounced MapLibre canvas resize on panel animations
   useEffect(() => {
@@ -272,10 +268,14 @@ export default function MapView({
 
   // Grouped Hazard & Infrastructure Layer Toggles
   const [showHabs, setShowHabs] = useState(true);
-  const [showSites, setShowSites] = useState(showSafeSites);
+  const [showSites, setShowSites] = useState(showSafeSites ?? true);
   const [showLandslide, setShowLandslide] = useState(initialShowLandslide ?? true);
   const [showFlood, setShowFlood] = useState(initialShowFlood ?? false);
   const [activeLayerTab, setActiveLayerTab] = useState<"layers" | "legend">("layers");
+
+  useEffect(() => {
+    if (showSafeSites !== undefined) setShowSites(showSafeSites);
+  }, [showSafeSites]);
 
   // Facility Ribbon Filter (BharatMaps Standard)
   const [selectedFacility, setSelectedFacility] = useState<string>(initialFacility ?? "all");
@@ -443,87 +443,18 @@ export default function MapView({
 
   const handleExportMapViewport = () => {
     if (!mapRef.current) return;
-    const map = mapRef.current;
-
-    const performExport = () => {
-      try {
-        const mapCanvas = map.getCanvas();
-        if (!mapCanvas) return;
-
-        // If there are overlaid DOM markers (e.g. simulation epicenter or target pins)
-        const container = map.getContainer();
-        const markers = container ? container.querySelectorAll<HTMLElement>(".maplibregl-marker") : [];
-
-        if (markers.length > 0) {
-          const compositeCanvas = document.createElement("canvas");
-          compositeCanvas.width = mapCanvas.width;
-          compositeCanvas.height = mapCanvas.height;
-          const ctx = compositeCanvas.getContext("2d");
-          if (ctx) {
-            // Draw base WebGL map
-            ctx.drawImage(mapCanvas, 0, 0);
-
-            // Draw overlaid DOM marker pins
-            const containerRect = container.getBoundingClientRect();
-            const scaleX = mapCanvas.width / containerRect.width;
-            const scaleY = mapCanvas.height / containerRect.height;
-
-            markers.forEach((marker) => {
-              const rect = marker.getBoundingClientRect();
-              const x = (rect.left - containerRect.left + rect.width / 2) * scaleX;
-              const y = (rect.top - containerRect.top + rect.height / 2) * scaleY;
-
-              ctx.beginPath();
-              ctx.arc(x, y, 9 * Math.min(scaleX, 2), 0, 2 * Math.PI);
-              ctx.fillStyle = "#EF4444";
-              ctx.fill();
-              ctx.lineWidth = 2.5 * Math.min(scaleX, 2);
-              ctx.strokeStyle = "#FFFFFF";
-              ctx.stroke();
-
-              ctx.beginPath();
-              ctx.arc(x, y, 16 * Math.min(scaleX, 2), 0, 2 * Math.PI);
-              ctx.lineWidth = 1.5 * Math.min(scaleX, 2);
-              ctx.strokeStyle = "rgba(239, 68, 68, 0.55)";
-              ctx.stroke();
-            });
-
-            const imageURI = compositeCanvas.toDataURL("image/png");
-            const link = document.createElement("a");
-            link.download = `riskos-map-inspection-${new Date().toISOString().split("T")[0]}.png`;
-            link.href = imageURI;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            return;
-          }
-        }
-
-        // Direct high-speed canvas export
-        const imageURI = mapCanvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.download = `riskos-map-inspection-${new Date().toISOString().split("T")[0]}.png`;
-        link.href = imageURI;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (err) {
-        console.error("Map viewport export error:", err);
-        handleExportData();
-      }
-    };
-
-    let executed = false;
-    const safeExport = () => {
-      if (executed) return;
-      executed = true;
-      map.off("render", safeExport);
-      performExport();
-    };
-
-    map.triggerRepaint();
-    map.once("render", safeExport);
-    setTimeout(safeExport, 150);
+    try {
+      const canvas = mapRef.current.getCanvas();
+      const dataUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `riskos-map-inspection-${new Date().toISOString().slice(0, 10)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {
+      handleExportData();
+    }
   };
 
   const handleExportData = () => {
@@ -564,15 +495,6 @@ export default function MapView({
     setTargetEpicenter(null);
     setTargetBrief(null);
   }, []);
-
-  // Target Mode is strictly inactive by default upon page load and page refresh
-  useEffect(() => {
-    setIsTargetToolActive(false);
-    clearTargetTool();
-    return () => {
-      setIsTargetToolActive(false);
-    };
-  }, [setIsTargetToolActive, clearTargetTool]);
 
   const handleSetTargetEpicenter = useCallback((lat: number, lon: number, radiusKm: number) => {
     if (!mapRef.current) return;
@@ -986,23 +908,6 @@ export default function MapView({
               <strong style="color: ${textTitle}; font-size: 12px; font-family: monospace;">${Number(props.population || 0).toLocaleString()}</strong>
             </div>
 
-            ${isPublicViewRef.current ? `
-            <div style="grid-column: span 2; background: ${bgBox}; padding: 6px 8px; border-radius: 6px; border: 1px solid ${borderBox}; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <span style="display:block; font-size: 9px; color: ${textSub}; font-weight: 600; text-transform: uppercase;">
-                  ${isHi ? "नागरिक सुरक्षा परामर्श" : "Citizen Safety Advisory"}
-                </span>
-                <strong style="color: ${color}; font-size: 12px; font-weight: 800;">
-                  ${hazardLvl === "RED" || hazardLvl === "HIGH" 
-                    ? (isHi ? "उच्च सतर्कता क्षेत्र (अलर्ट पर रहें)" : "High Alert Area") 
-                    : hazardLvl === "MODERATE" 
-                    ? (isHi ? "निगरानी स्थिति (सामान्य सतर्कता)" : "Watch Status") 
-                    : (isHi ? "सामान्य क्षेत्र (सुरक्षित)" : "Normal")}
-                </strong>
-              </div>
-              <span style="font-size: 14px;">${hazardLvl === "RED" || hazardLvl === "HIGH" ? "⚠️" : "🛡️"}</span>
-            </div>
-            ` : `
             <div style="background: ${bgBox}; padding: 5px 8px; border-radius: 6px; border: 1px solid ${borderBox};">
               <span style="display:block; font-size: 9px; color: ${textSub}; font-weight: 600; text-transform: uppercase;">
                 ${isHi ? "जोखिम स्कोर" : "Hazard Score"}
@@ -1016,7 +921,6 @@ export default function MapView({
               </span>
               <strong style="color: ${textTitle}; font-size: 12px;">${Number(props.vulnerability_score || 0).toFixed(1)} / 100</strong>
             </div>
-            `}
           </div>
 
           <!-- Actions Stack -->
@@ -1033,7 +937,7 @@ export default function MapView({
               onclick="window.__rsSelectHab(${id})"
               style="width: 100%; padding: 6px 10px; background: ${isDark ? "#1E3A8A" : "#0B2545"}; color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer;"
             >
-              ${isHi ? (isPublicViewRef.current ? "नागरिक प्रोफ़ाइल देखें →" : "सम्पूर्ण जोखिम प्रोफ़ाइल देखें →") : (isPublicViewRef.current ? "View Community Profile →" : "Open Detailed Risk Dossier →")}
+              ${isHi ? "सम्पूर्ण जोखिम प्रोफ़ाइल देखें →" : "Open Detailed Risk Dossier →"}
             </button>
           </div>
         </div>
@@ -1049,7 +953,6 @@ export default function MapView({
     const props = feat.properties || {};
     const rem = props.remaining_capacity ?? props.estimated_capacity;
     const isHi = langRef.current === "hi";
-    const isPublic = isPublicViewRef.current;
 
     const facilityTypeLabels: Record<string, { en: string; hi: string; icon: string }> = {
       health: { en: "Emergency Hospital / Medical Center", hi: "आपातकालीन अस्पताल / स्वास्थ्य केंद्र", icon: "🏥" },
@@ -1075,36 +978,7 @@ export default function MapView({
 
     const popup = new maplibregl.Popup({ offset: 14, closeButton: true, maxWidth: "320px", className: "riskos-popup" })
       .setLngLat(coords as maplibregl.LngLatLike)
-      .setHTML(isPublic ? `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 6px; background:${bgCard}; color:${textTitle}; border-radius: 8px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border-bottom:1px solid ${borderBox};padding-bottom:6px;">
-            <span style="font-size:18px;">${typeInfo.icon}</span>
-            <span style="font-weight:700;color:${textTitle};font-size:13px;line-height:1.2;">${props.name}</span>
-          </div>
-          <div style="font-size:10px;font-weight:700;color:${isDark ? '#34D399' : '#059669'};text-transform:uppercase;margin-bottom:8px;padding:2px 8px;background:${isDark ? '#064E3B44' : '#ECFDF5'};border-radius:4px;display:inline-block;border:1px solid ${isDark ? '#065F46' : '#A7F3D0'};">
-            ${isHi ? typeInfo.hi : typeInfo.en}
-          </div>
-          <table style="width:100%;font-size:11px;border-collapse:collapse;color:${textTitle};">
-            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "जिला" : "District"}</td><td style="padding:4px 0;font-weight:600;text-align:right;">${isHi ? (DISTRICT_NAMES_HI[props.district] || props.district) : props.district}</td></tr>
-            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "स्थिति" : "Status"}</td><td style="padding:4px 0;color:#059669;font-weight:700;text-align:right;">🟢 ${isHi ? "सक्रिय / खुला (Active / Open)" : "Active / Open"}</td></tr>
-            <tr style="border-bottom:1px solid ${borderBox};"><td style="padding:4px 0;color:${textSub};">${isHi ? "सड़क संपर्क" : "Road Connectivity"}</td><td style="padding:4px 0;color:${props.road_access ? '#059669' : '#DC2626'};font-weight:600;text-align:right;">${props.road_access ? (isHi ? 'उपलब्ध (बारहमासी)' : 'All-Weather Accessible') : (isHi ? 'अवरुद्ध / अनुपलब्ध' : 'Temporarily Blocked')}</td></tr>
-            <tr><td style="padding:5px 0 0;color:${textSub};" colspan="2">
-              <div style="font-size:10px;color:${textSub};margin-top:2px;border-top:1px dashed ${borderBox};padding-top:4px;line-height:1.4;">
-                <strong style="color:${textTitle};">${isHi ? "आपातकालीन हेल्पलाइन:" : "Emergency Helpline:"}</strong><br/>
-                ${isHi ? "राज्य आपदा हेल्पलाइन: 1070 • जिला DEOC: 1077 • ERSS: 112" : "State SDMA Helpline: 1070 • District DEOC: 1077 • ERSS: 112"}
-              </div>
-            </td></tr>
-          </table>
-          <a
-            href="https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="margin-top: 8px; width: 100%; padding: 7px 10px; background: #059669; color: white; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box;"
-          >
-            <span>🚗 ${isHi ? "दिशा-निर्देश प्राप्त करें (गूगल मैप्स) ↗" : "Get Directions (Google Maps) ↗"}</span>
-          </a>
-        </div>
-      ` : `
+      .setHTML(`
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 6px; background:${bgCard}; color:${textTitle}; border-radius: 8px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border-bottom:1px solid ${borderBox};padding-bottom:6px;">
             <span style="font-size:18px;">${typeInfo.icon}</span>
@@ -1547,13 +1421,16 @@ export default function MapView({
       // 5. Safe Relocation Shelters Source & Symbology
       map.addSource("safesites", {
         type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
+        data: safeSitesRef.current && safeSitesRef.current.features?.length > 0
+          ? safeSitesRef.current
+          : { type: "FeatureCollection", features: [] },
       });
 
       map.addLayer({
         id: "safesites-layer",
         type: "circle",
         source: "safesites",
+        layout: { visibility: showSites ? "visible" : "none" },
         paint: {
           "circle-radius": [
             "interpolate", ["linear"], ["zoom"],
@@ -1580,6 +1457,7 @@ export default function MapView({
         id: "habitations-halo",
         type: "circle",
         source: "habitations",
+        layout: { visibility: showHabs ? "visible" : "none" },
         filter: ["==", ["get", "hazard_level"], "RED"],
         paint: {
           "circle-radius": [
@@ -1599,6 +1477,7 @@ export default function MapView({
         id: "habitations-layer",
         type: "circle",
         source: "habitations",
+        layout: { visibility: showHabs ? "visible" : "none" },
         paint: {
           "circle-radius": [
             "match", ["get", "hazard_level"],
@@ -1669,6 +1548,7 @@ export default function MapView({
         source: "habitations",
         minzoom: 13.5,
         layout: {
+          visibility: showHabs ? "visible" : "none",
           "text-field": ["concat", ["get", "name"], " (Pop: ", ["to-string", ["get", "population"]], ")"],
           "text-size": 11,
           "text-offset": [0, 1.4],
@@ -1926,20 +1806,26 @@ export default function MapView({
     if (!mapLoaded || !mapRef.current) return;
     if (simulationResults) return;
 
-    if (habitationsData) {
+    if (habitationsData && Array.isArray(habitationsData.features) && habitationsData.features.length > 0) {
       (mapRef.current.getSource("habitations") as any)?.setData(habitationsData);
       return;
     }
 
-    const cachedData = queryClient.getQueryData(["habitations", district || "", hazardLevel || ""]);
-    if (cachedData) {
+    const cachedData = queryClient.getQueryData<any>(["habitations", district || "", hazardLevel || ""]);
+    if (cachedData && Array.isArray(cachedData.features) && cachedData.features.length > 0) {
       (mapRef.current.getSource("habitations") as any)?.setData(cachedData);
     } else {
       let alive = true;
-      getHabitations({ district, hazard_level: hazardLevel }).then((geojson) => {
-        if (!alive || !mapRef.current) return;
-        (mapRef.current.getSource("habitations") as any)?.setData(geojson);
-      });
+      getHabitations({ district, hazard_level: hazardLevel })
+        .then((geojson) => {
+          if (!alive || !mapRef.current) return;
+          if (geojson && Array.isArray(geojson.features)) {
+            (mapRef.current.getSource("habitations") as any)?.setData(geojson);
+          }
+        })
+        .catch((err) => {
+          console.warn("Could not load habitations data into map:", err);
+        });
       return () => { alive = false; };
     }
   }, [district, hazardLevel, mapLoaded, simulationResults, queryClient, habitationsData]);
@@ -1949,22 +1835,28 @@ export default function MapView({
     if (!mapLoaded || !mapRef.current) return;
     let alive = true;
     const typeParam = selectedFacility === "all" ? undefined : selectedFacility;
-    getSafeSites({ district: district || undefined, type: typeParam }).then((geojson) => {
-      if (!alive || !mapRef.current) return;
-      safeSitesRef.current = geojson;
-      (mapRef.current.getSource("safesites") as any)?.setData(geojson);
+    getSafeSites({ district: district || undefined, type: typeParam })
+      .then((geojson) => {
+        if (!alive || !mapRef.current) return;
+        safeSitesRef.current = geojson;
+        if (geojson && Array.isArray(geojson.features)) {
+          (mapRef.current.getSource("safesites") as any)?.setData(geojson);
+        }
 
-      // Active Facility Filter & Map Pin Sync
-      if (geojson && geojson.features && geojson.features.length > 0) {
-        if (selectedFacility !== "all") {
-          // Fit viewport to encompass the filtered facility markers
-          const bbox = turf.bbox(geojson);
-          if (bbox && isFinite(bbox[0]) && isFinite(bbox[1]) && isFinite(bbox[2]) && isFinite(bbox[3])) {
-            mapRef.current.fitBounds(bbox as any, { padding: 90, maxZoom: 14, duration: 1000 });
+        // Active Facility Filter & Map Pin Sync
+        if (geojson && geojson.features && geojson.features.length > 0) {
+          if (selectedFacility !== "all") {
+            // Fit viewport to encompass the filtered facility markers
+            const bbox = turf.bbox(geojson);
+            if (bbox && isFinite(bbox[0]) && isFinite(bbox[1]) && isFinite(bbox[2]) && isFinite(bbox[3])) {
+              mapRef.current.fitBounds(bbox as any, { padding: 90, maxZoom: 14, duration: 1000 });
+            }
           }
         }
-      }
-    });
+      })
+      .catch((err) => {
+        console.warn("Could not load safe sites data into map:", err);
+      });
     return () => { alive = false; };
   }, [mapLoaded, selectedFacility, district]);
 
@@ -2180,49 +2072,45 @@ export default function MapView({
             >
               <Layers className="w-4 h-4" />
             </button>
-            {!isPublicView && (
-              <>
-                <button
-                  onClick={toggleMeasurementTool}
-                  title={t("map.measure") || "Measure"}
-                  aria-label={t("map.measure") || "Distance Measurement Tool"}
-                  className={`p-1.5 rounded-lg transition ${
-                    measuring
-                      ? "bg-amber-600 text-white shadow-sm"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  <Ruler className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    if (isTargetToolActive) {
-                      setIsTargetToolActive(false);
-                      clearTargetTool();
-                    } else {
-                      setIsTargetToolActive(true);
-                    }
-                  }}
-                  title={t("map.targetTool") || "Disaster Epicenter & Hazard Radius Tool"}
-                  aria-label={t("map.targetTool") || "Spatial Buffer / Simulation"}
-                  className={`p-1.5 rounded-lg transition ${
-                    isTargetToolActive
-                      ? "bg-rose-600 text-white shadow-md ring-2 ring-rose-400"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  <Target className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleExportMapViewport}
-                  title={t("map.export") || "Export Snapshot"}
-                  aria-label={t("map.export") || "Export Map Viewport"}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-              </>
-            )}
+            <button
+              onClick={toggleMeasurementTool}
+              title={t("map.measure") || "Measure"}
+              aria-label={t("map.measure") || "Distance Measurement Tool"}
+              className={`p-1.5 rounded-lg transition ${
+                measuring
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
+            >
+              <Ruler className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                if (isTargetToolActive) {
+                  setIsTargetToolActive(false);
+                  clearTargetTool();
+                } else {
+                  setIsTargetToolActive(true);
+                }
+              }}
+              title={t("map.targetTool") || "Disaster Epicenter & Hazard Radius Tool"}
+              aria-label={t("map.targetTool") || "Spatial Buffer / Simulation"}
+              className={`p-1.5 rounded-lg transition ${
+                isTargetToolActive
+                  ? "bg-rose-600 text-white shadow-md ring-2 ring-rose-400"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
+            >
+              <Target className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleExportMapViewport}
+              title={t("map.export") || "Export Snapshot"}
+              aria-label={t("map.export") || "Export Map Viewport"}
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition"
+            >
+              <Download className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -2244,53 +2132,33 @@ export default function MapView({
             </button>
 
             {basemapDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-72 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-2xl p-2.5 z-40 space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    {isHi ? "आधार मानचित्र का चयन" : "Select Basemap Layer"}
-                  </span>
-                  <span className="text-[9px] font-mono text-blue-400 font-bold">{currentOption.label}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {BASEMAP_OPTIONS.map((opt) => {
-                    const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
-                    const subtitleTag =
-                      opt.id === "bhuvan"
-                        ? "BHUVAN"
-                        : opt.id === "satellite"
-                        ? "SATELLITE"
-                        : opt.id === "topo"
-                        ? "TOPO"
-                        : "STREETS";
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          switchBasemap(opt.id as BasemapType);
-                          setBasemapDropdownOpen(false);
-                        }}
-                        className={`flex items-center gap-2.5 rounded-xl p-2.5 text-left transition-all ${
-                          isSelected
-                            ? "border-2 border-blue-500 bg-blue-500/10 text-white font-medium"
-                            : "border border-slate-700/80 bg-slate-800/60 hover:bg-slate-800 hover:border-slate-600 rounded-xl p-2.5 text-slate-300"
-                        }`}
-                        title={isHi ? opt.hiLabel : opt.label}
-                        aria-label={opt.label}
-                      >
-                        <span className="text-xl flex-shrink-0">{opt.icon}</span>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-xs font-semibold block truncate leading-tight">
-                            {isHi ? opt.hiLabel : opt.label}
-                          </span>
-                          <span className="text-[9px] text-slate-400 block uppercase tracking-wider font-mono">
-                            {subtitleTag}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-[#111827ee] backdrop-blur-md border border-slate-200 dark:border-[#374151] rounded-xl shadow-2xl p-2 z-40 space-y-1 text-xs">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1 block">
+                  {isHi ? "आधार मानचित्र का चयन" : "Select Basemap Layer"}
+                </span>
+                {BASEMAP_OPTIONS.map((opt) => {
+                  const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        switchBasemap(opt.id as BasemapType);
+                        setBasemapDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
+                        isSelected
+                          ? "bg-blue-600 text-white font-bold"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>{opt.icon}</span>
+                        <span>{isHi ? opt.hiLabel : opt.label}</span>
+                      </span>
+                      {isSelected && <span className="text-[10px]">✓</span>}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2326,7 +2194,7 @@ export default function MapView({
             { id: "helipad", icon: "🚁", label: "Helipads", key: "facilities.helipads" },
             { id: "ration", icon: "🍞", label: "Relief Ration Depots", key: "facilities.reliefDepots" },
             { id: "siren", icon: "🚨", label: "Alert Sirens", key: "facilities.sirens" },
-          ].filter((fac) => !isPublicView || (fac.id !== "helipad" && fac.id !== "siren")).map((fac) => {
+          ].map((fac) => {
             const facLabel = t(fac.key) || t(fac.label) || fac.label;
             const isActive = selectedFacility === fac.id;
             return (
@@ -2378,20 +2246,18 @@ export default function MapView({
           >
             <Compass className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </button>
-          {!isPublicView && (
-            <button
-              onClick={toggleMeasurementTool}
-              className={`p-2 transition border-b border-slate-200 dark:border-slate-700 ${
-                measuring
-                  ? "bg-amber-600 text-white hover:bg-amber-700"
-                  : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
-              title={t("measure_tool")}
-              aria-label="Distance Measurement Tool"
-            >
-              <Ruler className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={toggleMeasurementTool}
+            className={`p-2 transition border-b border-slate-200 dark:border-slate-700 ${
+              measuring
+                ? "bg-amber-600 text-white hover:bg-amber-700"
+                : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+            title={t("measure_tool")}
+            aria-label="Distance Measurement Tool"
+          >
+            <Ruler className="w-4 h-4" />
+          </button>
           <button
             onClick={toggleZenMode}
             className={`p-2 transition border-b border-slate-200 dark:border-slate-700 ${
@@ -2663,6 +2529,47 @@ export default function MapView({
 
             {activeLayerTab === "layers" ? (
               <div className="space-y-3">
+                {/* Basemap Provider Selector Cards */}
+                <div className="space-y-1.5 pb-2.5 border-b border-slate-200 dark:border-slate-700/60">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                      {isHi ? "आधार मानचित्र (Basemap)" : "Basemap Provider"}
+                    </span>
+                    <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 font-mono">
+                      {currentOption.icon} {isHi ? currentOption.hiLabel : currentOption.label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {BASEMAP_OPTIONS.map((opt) => {
+                      const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => switchBasemap(opt.id as BasemapType)}
+                          className={`group relative flex items-center gap-2 p-1.5 rounded-lg border text-left transition-all ${
+                            isSelected
+                              ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/50 opacity-100 shadow-xs"
+                              : "border-slate-200 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-800/60"
+                          }`}
+                          title={isHi ? opt.hiLabel : opt.label}
+                          aria-label={opt.label}
+                        >
+                          <span className="text-base flex-shrink-0">{opt.icon}</span>
+                          <div className="min-w-0 flex-1">
+                            <span className={`text-[10px] font-bold block truncate leading-tight ${isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"}`}>
+                              {isHi ? opt.hiLabel : opt.label}
+                            </span>
+                            <span className="text-[8.5px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-mono">
+                              {opt.id}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* 1. Core Settlements & Safe Shelters */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
@@ -2784,51 +2691,39 @@ export default function MapView({
         </div>
       )}
 
-      {/* Basemap Quick-Preview Thumb (Bottom Right, BharatMaps Style) */}
+      {/* Basemap Quick-Preview Thumb Cards (Bottom Right, BharatMaps Style) */}
       <div className="absolute bottom-10 right-4 z-20">
-        <button
-          onClick={() => {
-            const nextMap: Record<BasemapType, BasemapType> = {
-              satellite: "street",
-              street: "topo",
-              streets: "topo",
-              topo: "bhuvan",
-              bhuvan: "satellite",
-            };
-            switchBasemap(nextMap[activeBasemap] || "satellite");
-          }}
-          className="group relative flex flex-col items-center p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border-2 border-white dark:border-slate-700 rounded-xl shadow-2xl hover:scale-105 transition-all overflow-hidden"
-          title={`Switch basemap (current: ${activeBasemap})`}
-          aria-label="Switch basemap view"
-        >
-          <div className="w-14 h-14 rounded-lg overflow-hidden relative flex items-center justify-center bg-slate-800 text-white font-bold text-[10px] shadow-inner">
-            {activeBasemap === "satellite" ? (
-              <div className="w-full h-full bg-gradient-to-br from-emerald-800 to-sky-900 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-sm">🗺️</span>
-                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Street")}</span>
-              </div>
-            ) : activeBasemap === "street" || activeBasemap === "streets" ? (
-              <div className="w-full h-full bg-gradient-to-br from-amber-700 to-stone-800 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-sm">⛰️</span>
-                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Topo")}</span>
-              </div>
-            ) : activeBasemap === "topo" ? (
-              <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-950 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-sm">🛰️</span>
-                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Bhuvan")}</span>
-              </div>
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-slate-900 to-emerald-950 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-sm">🛰️</span>
-                <span className="text-[9px] uppercase font-bold tracking-tight">{t("Satellite")}</span>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition" />
-          </div>
-          <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5 tracking-wider uppercase">
-            {activeBasemap === "satellite" ? t("Street") : activeBasemap === "street" || activeBasemap === "streets" ? t("Topo") : activeBasemap === "topo" ? t("Bhuvan") : t("Satellite")}
-          </span>
-        </button>
+        <div className="flex items-center gap-1.5 p-1 bg-white/95 dark:bg-[#0F172Aee] backdrop-blur-md border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-2xl">
+          {BASEMAP_OPTIONS.map((opt) => {
+            const isSelected = activeBasemap === opt.id || (opt.id === "streets" && activeBasemap === "street");
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => switchBasemap(opt.id as BasemapType)}
+                className={`relative flex flex-col items-center justify-center w-13 h-14 p-1 rounded-lg border transition-all ${
+                  isSelected
+                    ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50/70 dark:bg-blue-950/60 opacity-100 shadow-md scale-102"
+                    : "border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50/80 dark:bg-slate-800/80"
+                }`}
+                title={`Select ${isHi ? opt.hiLabel : opt.label}`}
+                aria-label={opt.label}
+              >
+                <div className="w-full flex-1 flex items-center justify-center">
+                  <span className="text-base select-none">{opt.icon}</span>
+                </div>
+                {/* Single legible badge/label beneath the icon (no duplicated text) */}
+                <span
+                  className={`text-[9px] font-bold tracking-tight text-center truncate w-full px-0.5 leading-tight ${
+                    isSelected ? "text-blue-700 dark:text-blue-300 font-extrabold" : "text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {opt.id === "bhuvan" ? "BHUVAN" : opt.id === "satellite" ? "SATELLITE" : opt.id === "topo" ? "TOPO" : "STREETS"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* RiskOS Clean Bottom Status Ribbon */}

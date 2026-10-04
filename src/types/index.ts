@@ -101,6 +101,7 @@ export interface SafeSiteFeatureProperties {
   road_access: boolean;
   water_availability: boolean;
   facility_type?: string;
+  type?: string;
 }
 
 export interface SafeSiteFeature {
